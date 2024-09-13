@@ -6,7 +6,6 @@ import cv2
 import datetime
 from datetime import datetime
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
 
 # 获取rtp目录下的文件名
 files = os.listdir('rtp')
@@ -22,7 +21,7 @@ for file in files:
 provinces_isps = [name for name in files_name if name.count('_') == 1]
 
 # 打印结果
-print(f"本次查询：{provinces_isps}的组播节目") 
+print(f"本次查询：{provinces_isps}的组播节目")
 
 keywords = []
 
@@ -39,25 +38,19 @@ for province_isp in provinces_isps:
                 mcast = first_line.split("rtp://")[1].split(" ")[0]
                 keywords.append(province_isp + "_" + mcast)
     except FileNotFoundError:
-        # 如果文件不存在，则捕获 FileNotFoundError 异常并打印提示信息
         print(f"文件 '{province_isp}.txt' 不存在. 跳过此文件.")
 
 for keyword in keywords:
     province, isp, mcast = keyword.split("_")
-    # 将省份转成英文小写
     # 根据不同的 isp 设置不同的 org 值
     if province == "北京" and isp == "联通":
-        isp_en = "cucc"
         org = "China Unicom Beijing Province Network"
     elif isp == "联通":
-        isp_en = "cucc"
         org = "CHINA UNICOM China169 Backbone"
     elif isp == "电信":
         org = "Chinanet"
-        isp_en = "ctcc"
     elif isp == "移动":
         org = "China Mobile communications corporation"
-        isp_en = "cmcc"
 
     current_time = datetime.now()
     timeout_cnt = 0
@@ -66,23 +59,16 @@ for keyword in keywords:
         try:
             search_url = 'https://fofa.info/result?qbase64='
             search_txt = f'\"Rozhuk\" && country=\"CN\" && region=\"{province}\"'
-            # 将字符串编码为字节流
             bytes_string = search_txt.encode('utf-8')
-            # 使用 base64 进行编码
             search_txt = base64.b64encode(bytes_string).decode('utf-8')
             search_url += search_txt
             print(f"{current_time} 查询运营商 : {province}{isp} ，查询网址 : {search_url}")
             response = requests.get(search_url, timeout=30)
-            # 处理响应
             response.raise_for_status()
-            # 检查请求是否成功
             html_content = response.text
-            # 使用BeautifulSoup解析网页内容
             html_soup = BeautifulSoup(html_content, "html.parser")
-            # 查找所有符合指定格式的网址
             pattern = r"http://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+"
             urls_all = re.findall(pattern, html_content)
-            # 去重得到唯一的URL列表
             result_urls = set(urls_all)
             print(f"{current_time} result_urls:{result_urls}")
 
@@ -98,19 +84,18 @@ for keyword in keywords:
                 # 检查视频是否成功打开
                 if not cap.isOpened():
                     print(f"{current_time} {video_url} 无效")
-                else:
-                    # 读取视频的宽度和高度
-                    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                    print(f"{current_time} {video_url} 的分辨率为 {width}x{height}")
-                    # 检查分辨率是否大于0
-                    if width > 0 and height > 0:
-                        valid_ips.append(url)
-                    # 关闭视频流
-                    cap.release()
-                    
+                    continue  # Skip to the next URL
+
+                # 读取视频的宽度和高度
+                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                print(f"{current_time} {video_url} 的分辨率为 {width}x{height}")
+
+                if width > 0 and height > 0:
+                    valid_ips.append(url)
+                cap.release()
+
             if valid_ips:
-                # 生成节目列表 省份运营商.txt
                 rtp_filename = f'rtp/{province}_{isp}.txt'
                 with open(rtp_filename, 'r', encoding='utf-8') as file:
                     data = file.read()
@@ -122,7 +107,7 @@ for keyword in keywords:
 
                 print(f'已生成播放列表，保存至{txt_filename}')
             else:
-                print("未找到合适的 IP 地址。")
+                print(f"未找到合适的 IP 地址。")
 
         except (requests.Timeout, requests.RequestException) as e:
             timeout_cnt += 1
@@ -150,6 +135,17 @@ for file_path in file_paths:
 # 写入合并后的文件
 with open("iptv_list.txt", "w", encoding="utf-8") as output:
     output.write('\n'.join(file_contents))
+
+# 处理iptv_list.txt文件的开头内容
+with open("iptv_list.txt", 'r', encoding='utf-8') as file:
+    lines = file.readlines()
+    if lines and "<html>" in lines[0]:  # 检查是否是错误页面
+        print("检测到错误页面内容，清空文件。")
+        lines = []  # 清空文件内容
+
+# 将有效内容重新写入
+with open("iptv_list.txt", "w", encoding='utf-8') as output:
+    output.writelines(lines)
 
 # 从整理好的文本中按类别进行特定关键词提取
 keywords = ['CCTV', "电视指南", "兵器科技", "世界地理", "文化精品", "风云剧场", "风云音乐", "怀旧剧场", "第一剧场", "女性时尚", "风云足球", "央视台球", "央视高网"]  # 需要提取的关键字列表
@@ -221,14 +217,18 @@ with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('df1.txt', 'w', 
 file_contents = []
 file_paths = ["c.txt", "c1.txt", "c2.txt", "e.txt", "DD.txt", "df.txt", "df1.txt", "f.txt", "f1.txt"]  # 替换为实际的文件路径列表
 for file_path in file_paths:
-    with open(file_path, 'r', encoding="utf-8") as file:
-        content = file.read()
-        file_contents.append(content)
+    if os.path.exists(file_path):
+        with open(file_path, 'r', encoding="utf-8") as file:
+            content = file.read()
+            file_contents.append(content)
+    else:
+        print(f"文件 {file_path} 不存在，跳过")
+
 # 生成合并后的文件
 with open("GAT.txt", "w", encoding="utf-8") as output:
     output.write(''.join(file_contents))
 
-# 读取临时文件，并生成结果文件。这一步其实多余，懒得改
+# 读取临时文件，并生成结果文件
 file_contents = []
 file_paths = ["GAT.txt"]  # 替换为实际的文件路径列表
 
@@ -236,15 +236,16 @@ for file_path in file_paths:
     with open(file_path, 'r', encoding="utf-8") as file:
         content = file.read()
         file_contents.append(content)
+
 # 写入合并后的文件
 with open("iptv_list.txt", "w", encoding="utf-8") as output:
-    output.write(''.join(file_contents))  # 加入\n则多一空行
+    output.write(''.join(file_contents))
 
-for line in fileinput.input("iptv_list.txt", inplace=True):  # 打开临时文件并对其进行关键词原地替换
+for line in fileinput.input("iptv_list.txt", inplace=True):
     line = line.replace("008广", "广")
     line = line.replace("家庭电影", "家庭影院")    
     line = line.replace("CHC", "CHC")  
-    print(line, end="")   
+    print(line, end="")
 
 with open('iptv_list.txt', 'r', encoding="utf-8") as file:
     lines = file.readlines()
