@@ -68,8 +68,8 @@ for keyword in keywords:
     while len(result_urls) == 0 and timeout_cnt <= 5:
         try:
             search_url = 'https://fofa.info/result?qbase64='
-            search_txt = f'\"udpxy\" && country=\"CN\" && region=\"{province}\"'
-           # search_txt = f'\"udpxy\" && country=\"CN\" && region=\"{province}\" && org=\"{org}\"'
+            search_txt = f'\"Rozhuk\" && country=\"CN\" && region=\"{province}\"'
+           # search_txt = f'\"Rozhuk\" && country=\"CN\" && region=\"{province}\" && org=\"{org}\"'
                 # 将字符串编码为字节流
             bytes_string = search_txt.encode('utf-8')
                 # 使用 base64 进行编码
@@ -315,7 +315,7 @@ with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('f1.txt', 'w', e
 
 
 #  获取远程港澳台直播源文件，打开文件并输出临时文件并替换关键词
-url = "https://raw.githubusercontent.com/mengxianshengaaa/live/main/tv/kong.txt"          #源采集地址
+url = "https://raw.bgithub.xyz/mengxianshengaaa/live/main/tv/kong.txt"          #源采集地址
 r = requests.get(url)
 open('HK.txt','wb').write(r.content)         #打开源文件并临时写入
 keywords = [',', 'rtmp']  # 需要提取的关键字列表 8M1080
@@ -360,7 +360,7 @@ for line in fileinput.input("b.txt", inplace=True):  #打开文件，并对其�
 ##############################################################################################################################################################################################################################################
 
 #  获取远程港澳台直播源文件，打开文件并输出临时文件并替换关键词
-url = "https://raw.githubusercontent.com/frxz751113/AAAAA/main/TW.txt"          #源采集地址
+url = "https://raw.bgithub.xyz/frxz751113/AAAAA/main/TW.txt"          #源采集地址
 r = requests.get(url)
 open('TW.txt','wb').write(r.content)         #打开源文件并临时写入
 #keywords = ['http', 'rtmp']  # 需要提取的关键字列表 8M1080
@@ -382,7 +382,7 @@ for line in fileinput.input("a.txt", inplace=True):   #打开临时文件原地�
 
 
 #  获取远程直播源文件
-url = "https://raw.githubusercontent.com/mengxianshengaaa/IPTV/main/json/zhibo.txt"          #源采集地址
+url = "https://raw.bgithub.xyz/mengxianshengaaa/IPTV/main/json/zhibo.txt"          #源采集地址
 r = requests.get(url)
 open('zhibo.txt','wb').write(r.content)         #打开源文件并临时写入
 
