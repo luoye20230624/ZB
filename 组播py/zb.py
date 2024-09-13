@@ -44,21 +44,7 @@ for province_isp in provinces_isps:
 
 # 遍历所有省份和ISP组合
 final_channels = []  # 存储所有组播频道信息
-
-# 直接从指定的文件中读取组播频道并写入到最终列表
-additional_files = [
-    "北京联通.txt", "上海电信.txt", "江苏电信.txt", "天津联通.txt", 
-    "湖北电信.txt", "湖南电信.txt", "广东电信.txt", "陕西电信.txt", 
-    "四川电信.txt", "河南电信.txt", "河南联通.txt"
-]
-
-for file_path in additional_files:
-    if os.path.exists(file_path):
-        with open(file_path, 'r', encoding='utf-8') as file:
-            content = file.read()
-            final_channels.append(content)
-    else:
-        print(f"文件 {file_path} 不存在，跳过")
+m3u_channels = []  # 存储用于 m3u 文件的频道信息
 
 # 遍历所有有效 IP 地址并测试第一个组播视频流
 for keyword in keywords:
@@ -116,6 +102,9 @@ for keyword in keywords:
                 new_data = data.replace("rtp://", f"{valid_ip}/rtp/")
                 final_channels.append(new_data)  # 添加更新后的频道信息到列表
 
+                # 对于 m3u 文件，构造频道信息
+                m3u_channels.append(f'#EXTINF:-1 tvg-id="{province}_{isp}" tvg-name="{province} {isp}" group-title="{province}",{province} {isp}\n{valid_ip}/rtp/{mcast}\n')
+
                 print(f'已生成播放列表，保存至{rtp_filename}')
             else:
                 print(f"未找到合适的 IP 地址。")
@@ -133,27 +122,6 @@ with open("iptv_list.txt", "w", encoding="utf-8") as output:
     output.write('\n'.join(final_channels))
 
 print('节目表制作完成！ 文件输出在当前文件夹！')
-
-# 合并自定义频道文件
-file_contents = []
-file_paths = ["北京联通.txt", "上海电信.txt", "江苏电信.txt", "天津联通.txt", "湖北电信.txt", "湖南电信.txt", "广东电信.txt", "陕西电信.txt", "四川电信.txt", "河南电信.txt", "河南联通.txt"]  # 替换为实际的文件路径列表
-for file_path in file_paths:
-    if os.path.exists(file_path):
-        with open(file_path, 'r', encoding="utf-8") as file:
-            content = file.read()
-            file_contents.append(content)
-    else:
-        print(f"文件 {file_path} 不存在，跳过")
-
-# 写入合并后的文件
-with open("iptv_list.txt", "a", encoding="utf-8") as output:
-    output.write('\n'.join(file_contents))
-
-# 分类整理并生成 M3U 文件
-m3u_channels = []  # 用于存储 M3U 文件内容
-for line in final_channels:
-    if line.strip():  # 确保行不为空
-        m3u_channels.append(f'#EXTINF:-1,{line.strip()}\n{line.strip()}')
 
 # 写入 M3U 文件
 with open("iptv_list.m3u", "w", encoding="utf-8") as m3u_output:
