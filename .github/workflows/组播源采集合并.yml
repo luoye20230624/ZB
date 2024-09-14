@@ -2,7 +2,7 @@ name: 组播源采集合并
 
 on:
   schedule:
-    - cron: '0 06,20 * * *'        #这里更改自动运行的时间，没这两行的话只能手动运行
+    - cron: '0 */4 * * *'  # 每四个小时的第 0 分钟运行
   workflow_dispatch:
     分支:
       - main
