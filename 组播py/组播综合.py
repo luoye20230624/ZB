@@ -154,7 +154,7 @@ keywords_2 = ['卫视']  # 添加提取“卫视”相关的关键词
 pattern_1 = '|'.join(keywords_1)  # 创建正则表达式模式，匹配央视频道相关关键词
 pattern_2 = '|'.join(keywords_2)  # 创建正则表达式模式，匹配卫视相关关键词
 
-with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('c.txt', 'w', encoding='utf-8') as c, open('satellite.txt', 'w', encoding='utf-8') as satellite:  # 定义两个输出文件
+with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('c.txt', 'w', encoding='utf-8') as c, open('c1.txt', 'w', encoding='utf-8') as satellite:  # 定义两个输出文件
     c.write('\n💚央视频道&爬虫,#genre#\n')  # 写入央视频道分组
     satellite.write('\n💚卫视频道&爬虫,#genre#\n')  # 写入卫视频道分组
 
