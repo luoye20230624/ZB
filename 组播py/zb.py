@@ -6,8 +6,8 @@ import cv2
 import datetime
 from datetime import datetime
 from bs4 import BeautifulSoup
-from opencc import OpenCC
 import fileinput
+from opencc import OpenCC
 
 # 获取rtp目录下的文件名
 files = os.listdir('rtp')
@@ -42,13 +42,18 @@ for province_isp in provinces_isps:
     except FileNotFoundError:
         print(f"文件 '{province_isp}.txt' 不存在. 跳过此文件.")
 
-# 遍历所有省份和ISP组合
-final_channels = []  # 存储所有组播频道信息
-m3u_channels = []  # 存储用于 m3u 文件的频道信息
-
-# 遍历所有有效 IP 地址并测试第一个组播视频流
 for keyword in keywords:
     province, isp, mcast = keyword.split("_")
+    # 根据不同的 isp 设置不同的 org 值
+    if province == "北京" and isp == "联通":
+        org = "China Unicom Beijing Province Network"
+    elif isp == "联通":
+        org = "CHINA UNICOM China169 Backbone"
+    elif isp == "电信":
+        org = "Chinanet"
+    elif isp == "移动":
+        org = "China Mobile communications corporation"
+
     current_time = datetime.now()
     timeout_cnt = 0
     result_urls = set() 
@@ -69,9 +74,9 @@ for keyword in keywords:
             result_urls = set(urls_all)
             print(f"{current_time} result_urls:{result_urls}")
 
-            valid_ip = None
+            valid_ips = []
 
-            # 遍历所有有效的 IP 地址，只测试每个 IP 的第一个组播视频流
+            # 遍历所有视频链接
             for url in result_urls:
                 video_url = url + "/rtp/" + mcast
 
@@ -79,33 +84,30 @@ for keyword in keywords:
                 cap = cv2.VideoCapture(video_url)
 
                 # 检查视频是否成功打开
-                if cap.isOpened():
-                    # 读取视频的宽度和高度
-                    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                    print(f"{current_time} {video_url} 的分辨率为 {width}x{height}")
-
-                    # 如果视频成功打开，记录该有效 IP
-                    valid_ip = url
-                    cap.release()  # 关闭视频流
-                    break  # 找到第一个成功的流，退出内层循环
-
-                else:
+                if not cap.isOpened():
                     print(f"{current_time} {video_url} 无效")
+                    continue  # Skip to the next URL
 
-            if valid_ip:
-                # 生成播放列表
+                # 读取视频的宽度和高度
+                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                print(f"{current_time} {video_url} 的分辨率为 {width}x{height}")
+
+                if width > 0 and height > 0:
+                    valid_ips.append(url)
+                cap.release()
+
+            if valid_ips:
                 rtp_filename = f'rtp/{province}_{isp}.txt'
                 with open(rtp_filename, 'r', encoding='utf-8') as file:
                     data = file.read()
-                # 使用有效 IP 更新播放列表
-                new_data = data.replace("rtp://", f"{valid_ip}/rtp/")
-                final_channels.append(new_data)  # 添加更新后的频道信息到列表
+                txt_filename = f'{province}{isp}.txt'
+                with open(txt_filename, 'w') as new_file:
+                    for url in valid_ips:
+                        new_data = data.replace("rtp://", f"{url}/rtp/")
+                        new_file.write(new_data)
 
-                # 对于 m3u 文件，构造频道信息
-                m3u_channels.append(f'#EXTINF:-1 tvg-id="{province}_{isp}" tvg-name="{province} {isp}" group-title="{province}",{province} {isp}\n{valid_ip}/rtp/{mcast}\n')
-
-                print(f'已生成播放列表，保存至{rtp_filename}')
+                print(f'已生成播放列表，保存至{txt_filename}')
             else:
                 print(f"未找到合适的 IP 地址。")
 
@@ -116,29 +118,117 @@ for keyword in keywords:
                 continue
             else:
                 print(f"{current_time} 搜索IPTV频道源[]，超时次数过多：{timeout_cnt} 次，停止处理")
-
-# 写入最终的iptv_list.txt文件
-with open("iptv_list.txt", "w", encoding="utf-8") as output:
-    output.write('\n'.join(final_channels))
-
 print('节目表制作完成！ 文件输出在当前文件夹！')
 
-# 写入 M3U 文件
-with open("iptv_list.m3u", "w", encoding="utf-8") as m3u_output:
-    m3u_output.write('#EXTM3U\n')
-    m3u_output.write('\n'.join(m3u_channels))
+# 合并自定义频道文件
+file_contents = []
+grouped_contents = {
+    '💚央视频道&爬虫,#genre#': [],
+    '💚卫视频道&爬虫,#genre#': [],
+    '💚数字频道&爬虫,#genre#': [],
+    '💚省级频道&爬虫,#genre#': [],
+    '💚凤凰CHC&爬虫,#genre#': [],
+}
 
-print("M3U 文件生成完成！")
+file_paths = ["c.txt", "c1.txt", "c2.txt", "e.txt", "DD.txt", "df.txt", "df1.txt", "f.txt", "f1.txt"]  # 替换为实际的文件路径列表
+for file_path in file_paths:
+    if os.path.exists(file_path):
+        with open(file_path, 'r', encoding="utf-8") as file:
+            content = file.readlines()
+            # 将内容按组存入字典
+            for line in content:
+                for key in grouped_contents.keys():
+                    if key in line:
+                        grouped_contents[key].append(line)
+                        break  # 找到对应组后停止
 
-# 处理iptv_list.txt文件的开头内容
-with open("iptv_list.txt", 'r', encoding='utf-8') as file:
+# 将内容按需要的顺序写入合并后的文件
+with open("GAT.txt", "w", encoding="utf-8") as output:
+    # 按顺序写入不同的分组
+    for group in ['💚央视频道&爬虫,#genre#', '💚卫视频道&爬虫,#genre#', '💚数字频道&爬虫,#genre#', '💚省级频道&爬虫,#genre#', '💚凤凰CHC&爬虫,#genre#']:
+        if group in grouped_contents:
+            output.write(''.join(grouped_contents[group]))
+
+# 读取临时文件，并生成结果文件
+with open("GAT.txt", 'r', encoding="utf-8") as file:
+    content = file.read()
+
+# 写入合并后的文件
+with open("iptv_list.txt", "w", encoding="utf-8") as output:
+    output.write(content)
+
+for line in fileinput.input("iptv_list.txt", inplace=True):
+    line = line.replace("008广", "广")
+    line = line.replace("家庭电影", "家庭影院")    
+    line = line.replace("CHC", "CHC")  
+    print(line, end="")
+
+with open('iptv_list.txt', 'r', encoding="utf-8") as file:
     lines = file.readlines()
-    if lines and "<html>" in lines[0]:  # 检查是否是错误页面
-        print("检测到错误页面内容，清空文件。")
-        lines = []  # 清空文件内容
 
-# 将有效内容重新写入
-with open("iptv_list.txt", "w", encoding='utf-8') as output:
-    output.writelines(lines)
+# 使用列表来存储唯一的行的顺序 
+unique_lines = [] 
+seen_lines = set() 
 
-print("任务运行完毕，分类频道列表可查看文件夹内iptv_list.txt和iptv_list.m3u文件！")
+# 遍历每一行，如果是新的就加入unique_lines 
+for line in lines:
+    if line not in seen_lines:
+        unique_lines.append(line)
+        seen_lines.add(line)
+
+# 将唯一的行写入新的文档 
+with open('iptv_list.txt', 'w', encoding="utf-8") as file:
+    file.writelines(unique_lines)
+
+# 简体转繁体
+converter = OpenCC('t2s.json')  # 繁转简
+with open('iptv_list.txt', 'r', encoding='utf-8') as file:
+    traditional_text = file.read()
+
+# 进行繁体字转简体字的转换
+simplified_text = converter.convert(traditional_text)
+
+# 将转换后的简体字写入txt文件
+with open('iptv_list.txt', 'w', encoding='utf-8') as file:
+    file.write(simplified_text)
+
+# TXT转M3U
+def txt_to_m3u(input_file, output_file):
+    # 读取txt文件内容
+    with open(input_file, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    # 打开m3u文件并写入内容
+    now = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+    current_time = now.strftime("%m-%d %H:%M")
+    with open(output_file, 'w', encoding='utf-8') as f:  
+        f.write('#EXTM3U x-tvg-url="https://live.fanmingming.com/e.xml" catchup="append" catchup-source="?playseek=${(b)yyyyMMddHHmmss}-${(e)yyyyMMddHHmmss}"\n')
+        f.write(f'#EXTINF:-1 group-title="💚更新时间{current_time}",河南卫视\n')    
+        f.write(f'http://61.163.181.78:9901/tsfile/live/1034_1.m3u8?key=txiptv&playlive=1&authid=0\n')    
+        # 初始化genre变量
+        genre = ''
+        # 遍历txt文件内容
+        for line in lines:
+            line = line.strip()
+            if "," in line:  # 防止文件里面缺失","号报错
+                channel_name, channel_url = line.split(',', 1)
+                if channel_url == '#genre#':
+                    genre = channel_name
+                    print(genre)
+                else:
+                    # 将频道信息写入m3u文件
+                    f.write(f'#EXTINF:-1 tvg-id="{channel_name}" tvg-name="{channel_name}" tvg-logo="https://live.fanmingming.com/tv/{channel_name}.png" group-title="{genre}",{channel_name}\n')
+                    f.write(f'{channel_url}\n')
+
+# 将txt文件转换为m3u文件
+txt_to_m3u('iptv_list.txt', 'iptv_list.m3u')
+
+# 任务结束，删除不必要的过程文件
+files_to_remove = ["北京联通.txt", "上海电信.txt", "江苏电信.txt", "天津联通.txt", "湖北电信.txt", "湖南电信.txt", "广东电信.txt", "陕西电信.txt", "四川电信.txt", "河南电信.txt", "河南联通.txt", "GAT.txt", "DD.txt", "TW.txt", "a.txt", "b.txt", "b2.txt", "HK.txt", "c.txt", "c1.txt", "c2.txt", "e.txt", "f.txt", "f1.txt", "df.txt", "df1.txt", "TT.txt", "zhibo.txt"]
+
+for file in files_to_remove:
+    if os.path.exists(file):
+        os.remove(file)
+    else:  # 如果文件不存在，则提示异常并打印提示信息
+        print(f"文件 {file} 不存在，跳过删除。")
+
+print("任务运行完毕，分类频道列表可查看文件夹内iptv_list.txt文件！")
