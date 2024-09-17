@@ -198,7 +198,7 @@ def txt_to_m3u(input_file, output_file):
     with open(input_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
     # 打开m3u文件并写入内容
-    now = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+    now = datetime.utcnow() + datetime.timedelta(hours=8)
     current_time = now.strftime("%m-%d %H:%M")
     with open(output_file, 'w', encoding='utf-8') as f:  
         f.write('#EXTM3U x-tvg-url="https://live.fanmingming.com/e.xml" catchup="append" catchup-source="?playseek=${(b)yyyyMMddHHmmss}-${(e)yyyyMMddHHmmss}"\n')
