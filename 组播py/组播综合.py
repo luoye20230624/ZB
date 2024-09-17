@@ -147,7 +147,7 @@ with open("iptv_list.txt", 'r', encoding='utf-8') as file:
 with open("iptv_list.txt", "w", encoding='utf-8') as output:
     output.writelines(lines)
 
-#从整理好的文本中按类别进行特定关键词提取#############################################################################################
+#从整理好的文本中按类别进行特定关键词提取央视频道
 keywords = ['CCTV', "电视指南", "兵器科技", "世界地理", "文化精品", "风云剧场", "风云音乐", "怀旧剧场", "第一剧场", "女性时尚", "风云足球", "央视台球", "央视高网"]  # 需要提取的关键字列表
 pattern = '|'.join(keywords)  # 创建正则表达式模式，匹配任意一个关键字
 #pattern = r"^(.*?),(?!#genre#)(.*?)$" #以分类直接复制
@@ -158,16 +158,16 @@ with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('c.txt', 'w', en
         if re.search(pattern, line):  # 如果行中有任意关键字
          c.write(line)  # 将该行写入输出文件                                                          #####定义临时文件
 
-#从整理好的文本中按类别进行特定关键词提取f1
-keywords = ['卫视', 'kk']  # 需要提取的关键字列表
+#从整理好的文本中按类别进行特定关键词提取卫视频道
+keywords = ['卫视']  # 需要提取的关键字列表
 pattern = '|'.join(keywords)  # 创建正则表达式模式，匹配任意一个关键字
 #pattern = r"^(.*?),(?!#genre#)(.*?)$" #以分类直接复制
-with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('f1.txt', 'w', encoding='utf-8') as f1:    #####定义临时文件名
-    f1.write('\n💚卫视频道&爬虫,#genre#\n')                                                                  #####写入临时文件名
+with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('c1.txt', 'w', encoding='utf-8') as c1:    #####定义临时文件名
+    c1.write('\n💚卫视频道&爬虫,#genre#\n')                                                                  #####写入临时文件名
     for line in file:
       if 'CCTV' not in line and '北京IPTV' not in line and 'CHC' not in line and '4K' not in line and 'genre' not in line:
         if re.search(pattern, line):  # 如果行中有任意关键字
-         f1.write(line)  # 将该行写入输出文件
+         c1.write(line)  # 将该行写入输出文件
 
 
 # 从整理好的文本中按类别进行特定关键词提取
@@ -179,24 +179,6 @@ with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('c2.txt', 'w', e
         if '$GD' not in line and '调解' not in line:
             if re.search(pattern, line):  # 如果行中有任意关键字
                 c2.write(line)  # 将该行写入输出文件
-
-# 从整理好的文本中按类别进行特定关键词提取
-keywords = ['kk']  # 需要提取的关键字列表
-pattern = '|'.join(keywords)  # 创建正则表达式模式，匹配任意一个关键字
-with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('c1.txt', 'w', encoding='utf-8') as c1:  # 定义临时文件名
-    for line in file:
-        if '$GD' not in line and '4K' not in line:
-            if re.search(pattern, line):  # 如果行中有任意关键字
-                c1.write(line)  # 将该行写入输出文件
-
-# 从整理好的文本中按类别进行特定关键词提取
-keywords = ['kk']  # 需要提取的关键字列表
-pattern = '|'.join(keywords)  # 创建正则表达式模式，匹配任意一个关键字
-with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('e.txt', 'w', encoding='utf-8') as e:  # 定义临时文件名
-    for line in file:
-        if '环绕' not in line and 'CCTV' not in line and '4K' not in line:
-            if re.search(pattern, line):  # 如果行中有任意关键字
-                e.write(line)  # 将该行写入输出文件
 
 # 从整理好的文本中按类别进行特定关键词提取
 keywords = ['凤凰', 'CHC']  # 需要提取的关键字列表
@@ -216,15 +198,6 @@ with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('df.txt', 'w', e
         if 'CCTV' not in line and '卫视' not in line:        
             if re.search(pattern, line):  # 如果行中有任意关键字
                 df.write(line)  # 将该行写入输出文件
-
-# 从整理好的文本中按类别进行特定关键词提取
-keywords = ['k', 'k', 'kk']  # 需要提取的关键字列表
-pattern = '|'.join(keywords)  # 创建正则表达式模式，匹配任意一个关键字
-with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('df1.txt', 'w', encoding='utf-8') as df1:
-    for line in file:
-        if 'CCTV' not in line and 'kk' not in line and '影' not in line and '剧' not in line and '4K' not in line:        
-            if re.search(pattern, line):  # 如果行中有任意关键字
-                df1.write(line)  # 将该行写入输出文件
 
 # 读取要合并的频道文件，并生成临时文件
 file_contents = []
