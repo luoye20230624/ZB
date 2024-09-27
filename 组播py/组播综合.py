@@ -152,7 +152,7 @@ keywords = ['CCTV', "电视指南", "兵器科技", "世界地理", "文化精�
 pattern = '|'.join(keywords)  # 创建正则表达式模式，匹配任意一个关键字
 #pattern = r"^(.*?),(?!#genre#)(.*?)$" #以分类直接复制
 with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('c.txt', 'w', encoding='utf-8') as c:    #####定义临时文件名
-    c.write('\n💚央视频道&爬虫,#genre#\n')                                                                  #####写入临时文件名$GD
+    c.write('\n央视频道,#genre#\n')                                                                  #####写入临时文件名$GD
     for line in file:
       if '$GD' not in line and '4K' not in line:
         if re.search(pattern, line):  # 如果行中有任意关键字
@@ -163,7 +163,7 @@ keywords = ['卫视']  # 需要提取的关键字列表
 pattern = '|'.join(keywords)  # 创建正则表达式模式，匹配任意一个关键字
 #pattern = r"^(.*?),(?!#genre#)(.*?)$" #以分类直接复制
 with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('c1.txt', 'w', encoding='utf-8') as c1:    #####定义临时文件名
-    c1.write('\n💚卫视频道&爬虫,#genre#\n')                                                                  #####写入临时文件名
+    c1.write('\n卫视频道,#genre#\n')                                                                  #####写入临时文件名
     for line in file:
       if 'CCTV' not in line and '北京IPTV' not in line and 'CHC' not in line and '4K' not in line and 'genre' not in line:
         if re.search(pattern, line):  # 如果行中有任意关键字
@@ -174,7 +174,7 @@ with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('c1.txt', 'w', e
 keywords = ['IHOT爱', '北京IPTV', '梨园', 'kk']  # 需要提取的关键字列表
 pattern = '|'.join(keywords)  # 创建正则表达式模式，匹配任意一个关键字
 with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('c2.txt', 'w', encoding='utf-8') as c2:  # 定义临时文件名
-    c2.write('\n💚数字频道&爬虫,#genre#\n')  # 写入临时文件名$GD
+    c2.write('\n数字频道,#genre#\n')  # 写入临时文件名$GD
     for line in file:
         if '$GD' not in line and '调解' not in line:
             if re.search(pattern, line):  # 如果行中有任意关键字
@@ -184,7 +184,7 @@ with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('c2.txt', 'w', e
 keywords = ['凤凰', 'CHC']  # 需要提取的关键字列表
 pattern = '|'.join(keywords)  # 创建正则表达式模式，匹配任意一个关键字
 with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('DD.txt', 'w', encoding='utf-8') as DD:
-    DD.write('\n💚凤凰CHC&爬虫,#genre#\n')
+    DD.write('\n凤凰CHC,#genre#\n')
     for line in file:
         if re.search(pattern, line):  # 如果行中有任意关键字
             DD.write(line)  # 将该行写入输出文件
@@ -193,7 +193,7 @@ with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('DD.txt', 'w', e
 keywords = ['湖南', '河南', '陕西', '河南公共', '河南乡村', '北京', '河南民生', '湖南', '移动戏曲', '河南电视剧', '河南都市', '江苏']  # 需要提取的关键字列表
 pattern = '|'.join(keywords)  # 创建正则表达式模式，匹配任意一个关键字
 with open('iptv_list.txt', 'r', encoding='utf-8') as file, open('df.txt', 'w', encoding='utf-8') as df:
-    df.write('\n💚省级频道&爬虫,#genre#\n')
+    df.write('\n省级频道,#genre#\n')
     for line in file:
         if 'CCTV' not in line and '卫视' not in line:        
             if re.search(pattern, line):  # 如果行中有任意关键字
@@ -275,7 +275,7 @@ def txt_to_m3u(input_file, output_file):
     current_time = now.strftime("%m-%d %H:%M")
     with open(output_file, 'w', encoding='utf-8') as f:  
         f.write('#EXTM3U x-tvg-url="https://live.fanmingming.com/e.xml" catchup="append" catchup-source="?playseek=${(b)yyyyMMddHHmmss}-${(e)yyyyMMddHHmmss}"\n')
-        f.write(f'#EXTINF:-1 group-title="💚更新时间{current_time}",河南卫视\n')    
+        f.write(f'#EXTINF:-1 group-title="更新时间{current_time}",河南卫视\n')    
         f.write(f'http://61.163.181.78:9901/tsfile/live/1034_1.m3u8?key=txiptv&playlive=1&authid=0\n')    
         # 初始化genre变量
         genre = ''
