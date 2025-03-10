@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>频道格式转换工具</title>
+    <style>
+        .container { max-width: 1000px; margin: 20px auto; padding: 20px; }
+        textarea { width: 100%; height: 200px; margin: 10px 0; font-family: monospace; }
+        .controls { margin: 15px 0; display: flex; gap: 10px; align-items: center; }
+        button { 
+            padding: 8px 15px; 
+            cursor: pointer; 
+            white-space: nowrap;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button:hover { background-color: #e0e0e0; }
+        label { display: block; margin: 10px 0; }
+        .prefix-box { display: flex; gap: 10px; align-items: center; flex: 1; }
+        input[type="text"] { 
+            padding: 5px;
+            flex-grow: 1;
+            min-width: 300px;
+            width: 100%;
+        }
+        .copy-section {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>电视频道格式转换工具</h2>
+        
+        <label>原始输入：</label>
+        <textarea id="input" placeholder="粘贴PHP数组或频道链接..."></textarea>
+
+        <div class="controls">
+            <div class="prefix-box">
+                <label>URL前缀：</label>
+                <input type="text" id="prefix" value="http://abc.com/dl.php?id=">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="convertToLinks()">转换为频道链接</button>
+                <button onclick="convertToPHP()">转换为PHP数组</button>
+                <button onclick="clearInput()" style="background-color: #ffcccc;">清空</button>
+            </div>
+        </div>
+
+        <label>转换结果：</label>
+        <textarea id="output" readonly></textarea>
+        <div class="copy-section">
+            <button onclick="copyText()" style="background-color: #ccffcc;">复制文本</button>
+        </div>
+    </div>
+
+    <script>
+        // 转换为频道链接
+        function convertToLinks() {
+            const input = document.getElementById('input').value;
+            const prefix = document.getElementById('prefix').value;
+            const output = [];
+            
+            const regex = /'([^']+)'\s*=>\s*\[[^\]]+\],\s*\/\/\s*(.*)/g;
+            let match;
+            
+            while ((match = regex.exec(input)) !== null) {
+                const id = match[1];
+                const name = match[2].trim();
+                output.push(`${name},${prefix}${id}`);
+            }
+            
+            document.getElementById('output').value = output.join('\n');
+        }
+
+        // 转换为PHP数组
+        function convertToPHP() {
+            const input = document.getElementById('input').value;
+            const output = [];
+            
+            input.split('\n').forEach(line => {
+                const [namePart, urlPart] = line.split(/\s*,\s*/);
+                if (!urlPart) return;
+                
+                const name = namePart.trim();
+                const id = new URL(urlPart).searchParams.get('id') || urlPart.split('=').pop();
+                output.push(`'${id}'=>[0.0,0],//${name}`);
+            });
+            
+            document.getElementById('output').value = output.join('\n');
+        }
+
+        // 清空功能
+        function clearInput() {
+            document.getElementById('input').value = '';
+            document.getElementById('output').value = '';
+        }
+
+        // 复制功能
+        function copyText() {
+            const output = document.getElementById('output');
+            try {
+                navigator.clipboard.writeText(output.value)
+                    .then(() => alert('复制成功！'))
+                    .catch(err => alert('复制失败：' + err));
+            } catch (err) {
+                output.select();
+                document.execCommand('copy');
+                alert('内容已复制！');
+            }
+        }
+    </script>
+</body>
+</html>
