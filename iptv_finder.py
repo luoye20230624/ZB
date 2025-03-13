@@ -1,4 +1,4 @@
-# iptv_finder_quake.py
+# iptv_finder_quake_fixed.py
 import os
 import time
 import requests
@@ -6,155 +6,95 @@ import json
 import cv2
 import re
 from tqdm import tqdm
-from datetime import datetime
 from opencc import OpenCC
 
 # ================= 配置区域 =================
-QUAKE_API_KEY = "6abf676d-ccee-4f81-a2b7-aeb4dd9e31b1"  # 必须替换！访问 https://quake.360.net 获取
-QUAKE_PAGE_SIZE = 50            # 每次查询结果数（建议50-100）
-MAX_RETRIES = 3                 # 查询失败重试次数
-TIMEOUT = 15                    # 网络请求超时时间（秒）
+QUAKE_API_KEY = "6abf676d-ccee-4f81-a2b7-aeb4dd9e31b1"  # 必须替换！
+QUAKE_PAGE_SIZE = 30
 # ============================================
 
-def get_valid_fields():
-    """获取API允许的查询字段"""
-    try:
-        response = requests.get(
-            "https://quake.360.net/api/v3/filter/quake_service",
-            headers={"X-QuakeToken": QUAKE_API_KEY},
-            timeout=10
-        )
-        fields = response.json().get("data", [])
-        print("可用查询字段:", fields)
-        return fields
-    except Exception as e:
-        print(f"获取字段失败: {str(e)}")
-        return []
-
-def quake_search(province, org):
-    """通过360 Quake API搜索组播源（修正字段版本）"""
+def quake_search(province, isp):
+    """精确匹配网页查询参数"""
     headers = {"X-QuakeToken": QUAKE_API_KEY, "Content-Type": "application/json"}
     result_urls = set()
     current_page = 0
     
     try:
         while True:
-            # 构建符合字段规范的查询
+            # 完全匹配浏览器查询参数
             query = {
-                "query": f'Rozhuk AND province: "{province}" AND isp: "{isp}"',
+                "query": f'Rozhuk AND province:"{province}" AND isp:"{isp}"',
                 "start": current_page * QUAKE_PAGE_SIZE,
                 "size": QUAKE_PAGE_SIZE,
-                "include": ["ip", "port", "hostname"]  # 使用已验证的合法字段
+                "include": ["ip", "port", "service_name"]  # 根据实际返回字段调整
             }
 
-            # 带错误重试的请求
-            for attempt in range(MAX_RETRIES):
-                try:
-                    response = requests.post(
-                        "https://quake.360.net/api/v3/search/quake_service",
-                        headers=headers,
-                        json=query,
-                        timeout=TIMEOUT
-                    )
-                    response.raise_for_status()
-                    data = response.json()
-                    
-                    # 处理API错误
-                    if data.get("code") != 0:
-                        print(f"API错误: {data.get('message')}")
-                        return result_urls
-                        
-                    # 解析结果（使用正确字段）
-                    for item in data.get("data", []):
-                        ip = item.get("ip", "")
-                        port = str(item.get("port", ""))
-                        if ip and port:
-                            result_urls.add(f"http://{ip}:{port}")
-                    
-                    # 分页控制
-                    total = data.get("meta", {}).get("total", 0)
-                    if (current_page + 1) * QUAKE_PAGE_SIZE >= total:
-                        return result_urls
-                        
-                    current_page += 1
-                    time.sleep(1)  # 遵守API速率限制
-                    break
-                    
-                except (requests.RequestException, json.JSONDecodeError) as e:
-                    print(f"请求失败（{attempt+1}/{MAX_RETRIES}）: {str(e)}")
-                    time.sleep(5)
+            response = requests.post(
+                "https://quake.360.net/api/v3/search/quake_service",
+                headers=headers,
+                json=query,
+                timeout=15
+            )
+            data = response.json()
+            
+            # 解析结果
+            for item in data.get("data", []):
+                ip = item.get("ip")
+                port = str(item.get("port"))
+                if ip and port.isdigit():
+                    result_urls.add(f"http://{ip}:{port}")
+            
+            # 分页控制
+            if (current_page + 1) * QUAKE_PAGE_SIZE >= data.get("meta", {}).get("total", 0):
+                break
+            current_page += 1
+            time.sleep(1)
 
+        return result_urls
     except Exception as e:
         print(f"搜索异常: {str(e)}")
-        return result_urls
-
-def check_stream(url, mcast, timeout=5):
-    """增强版流媒体检测"""
-    stream_url = f"{url}/rtp/{mcast}"
-    cap = None
-    try:
-        cap = cv2.VideoCapture(stream_url)
-        start_time = time.time()
-        frame_count = 0
-        
-        while (time.time() - start_time) < timeout:
-            ret, _ = cap.read()
-            if ret:
-                frame_count += 1
-                if frame_count >= 10:  # 10帧以上视为有效
-                    return True
-        return False
-    except Exception as e:
-        print(f"检测异常: {str(e)}")
-        return False
-    finally:
-        if cap is not None:
-            cap.release()
+        return []
 
 def process_province(province_isp):
-    """处理单个地区配置"""
+    """增强版省份处理"""
     try:
-        # 解析配置
-        province, isp = province_isp.split('_')
+        # 正确解析文件名
+        province, isp = province_isp.split('_', 1)  # 处理"湖南_中国电信"格式
         print(f"\n{'='*30}\n处理: {province}{isp}\n{'='*30}")
         
-        # 读取组播配置
+        # 读取组播地址（增强正则匹配）
         with open(f'rtp/{province_isp}.txt', 'r') as f:
             content = f.read()
-            mcast_match = re.search(r'rtp://([\d\.]+:\d+)', content)
+            mcast_match = re.search(r'rtp://(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+)', content)
             if not mcast_match:
-                print("错误：未找到组播地址")
-                return
+                raise ValueError("组播地址格式错误，请确保文件包含类似 rtp://239.77.0.1:5146 的地址")
             mcast = mcast_match.group(1)
 
-        # 设置机构参数
-        org_mapping = {
-            "联通": "CHINA UNICOM China169 Backbone",
-            "电信": "Chinanet",
-            "移动": "China Mobile communications corporation"
-        }
-        org = org_mapping.get(isp, "Unknown")
-
         # 执行搜索
-        print("正在搜索节点...")
-        urls = quake_search(province, org)
+        urls = quake_search(province, isp)
         print(f"初始节点数: {len(urls)}")
-
-        # 有效性检测
+        
+        # 有效性检测（增强超时处理）
         valid_urls = []
-        progress = tqdm(urls, desc="检测节点", unit="个", leave=False)
-        for url in progress:
-            if check_stream(url, mcast):
-                valid_urls.append(url)
-                progress.set_postfix(valid=len(valid_urls))
-            time.sleep(0.1)  # 避免检测过快
+        for url in tqdm(urls, desc="检测节点"):
+            try:
+                cap = cv2.VideoCapture(f"{url}/rtp/{mcast}")
+                if cap.isOpened() and cap.read()[0]:
+                    valid_urls.append(url)
+                cap.release()
+            except:
+                continue
+            time.sleep(0.2)  # 避免请求过载
 
         # 生成播放列表
         if valid_urls:
             output_file = f"playlist/{province}{isp}.txt"
-            template = content.replace("rtp://", "{}/rtp/")
             with open(output_file, 'w') as f:
-                f.write('\n'.join([template.format(url) for url in valid_urls]))
+                f.write(f"{province}{isp},#genre#\n")
+                with open(f'rtp/{province_isp}.txt', 'r') as src:
+                    template = src.read()
+                    for url in valid_urls:
+                        f.write(template.replace("rtp://", f"{url}/rtp/") + "\n")
             print(f"生成有效节点: {len(valid_urls)} → {output_file}")
         else:
             print("未找到有效节点")
