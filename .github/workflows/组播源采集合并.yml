@@ -26,7 +26,7 @@ jobs:
           pip install selenium requests futures eventlet opencv-python Beautifulsoup4 translate termcolor func_timeout replace input opencc pypinyin pytz tqdm
       - name: Run py
         run: | 
-          python ${{ github.workspace }}/组播py/组播综合.py
+          python ${{ github.workspace }}/iptv_finder.py
       - name: 提交更改
         run: |
           git config --local user.email "actions@163.com"
