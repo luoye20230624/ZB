@@ -41,7 +41,7 @@ def quake_search(province, org):
         while True:
             # 构建符合字段规范的查询
             query = {
-                "query": f'service_name:"Rozhuk" AND country:"CN" AND region:"{province}" AND org:"{org}"',
+                "query": f'Rozhuk AND province: "{province}" AND isp: "{isp}"',
                 "start": current_page * QUAKE_PAGE_SIZE,
                 "size": QUAKE_PAGE_SIZE,
                 "include": ["ip", "port", "hostname"]  # 使用已验证的合法字段
