@@ -139,32 +139,67 @@ def process_province(province_isp):
         print(f"处理异常: {str(e)}")
 
 def merge_results():
-    """合并并优化结果文件"""
+    """分类合并结果文件"""
     all_files = [f for f in os.listdir('playlist') if f.endswith('.txt')]
-    merged_content = []
     cc = OpenCC('t2s')  # 繁体转简体
     
-    # 合并内容
+    # 初始化分类字典
+    categorized = {
+        "更新时间,#genre#": [datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
+        "央视频道,#genre#": [],
+        "卫视频道,#genre#": [],
+        "其他频道,#genre#": []
+    }
+
+    # 分类规则
+    cctv_pattern = re.compile(r'CCTV|央视|中央')
+    satellite_pattern = re.compile(r'卫视|凤凰|星空')
+
+    # 处理所有文件
     for file in all_files:
         with open(f'playlist/{file}', 'r', encoding='utf-8') as f:
-            content = cc.convert(f.read())
-            merged_content.extend(content.splitlines())
-    
-    # 高级去重（忽略空行和注释）
+            for line in cc.convert(f.read()).splitlines():
+                # 跳过分类行和空行
+                if '#genre#' in line or not line.strip():
+                    continue
+                
+                # 提取频道名称
+                channel_name = line.split(',')[0].strip()
+                
+                # 分类判断
+                if cctv_pattern.search(channel_name):
+                    categorized["央视频道,#genre#"].append(line)
+                elif satellite_pattern.search(channel_name):
+                    categorized["卫视频道,#genre#"].append(line)
+                else:
+                    categorized["其他频道,#genre#"].append(line)
+
+    # 去重处理
     seen = set()
-    unique_lines = []
-    for line in merged_content:
-        clean_line = line.strip()
-        if not clean_line or clean_line.startswith("#"):
+    for category in categorized:
+        if "#genre#" in category:  # 跳过分类标题
             continue
-        if clean_line not in seen:
-            seen.add(clean_line)
-            unique_lines.append(line)
-    
+        unique_lines = []
+        for line in categorized[category]:
+            if line not in seen:
+                seen.add(line)
+                unique_lines.append(line)
+        categorized[category] = unique_lines
+
     # 生成最终文件
     with open('iptv_list.txt', 'w', encoding='utf-8') as f:
-        f.write('\n'.join(unique_lines))
-    print(f"\n合并完成！总频道数: {len(unique_lines)}")
+        # 写入更新时间
+        f.write(f"{list(categorized.keys())[0]}\n")
+        f.write(f"{categorized['更新时间,#genre#'][0]}\n\n")
+        
+        # 写入分类内容
+        for category in list(categorized.keys())[1:]:
+            if categorized[category]:
+                f.write(f"{category}\n")
+                f.write("\n".join(categorized[category]))
+                f.write("\n\n")
+
+    print(f"\n合并完成！总频道数: {len(seen)} → iptv_list.txt")
 
 def main():
     # 初始化环境
