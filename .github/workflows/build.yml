@@ -1,6 +1,7 @@
 name: Build EXE
 
-on: [push]
+on:
+  workflow_dispatch:  # 仅手动触发
 
 jobs:
   build:
@@ -19,13 +20,8 @@ jobs:
         pip install pyinstaller==5.13.0
         pip install opencv-python==4.7.0.72 numpy==1.23.5
 
-    - name: Build EXE (关键步骤)
-      run: |
-        pyinstaller --onefile --noconsole ^
-          --additional-hooks-dir=./hooks ^
-          --hidden-import "numpy.core._multiarray_umath" ^
-          --hidden-import "numpy.core._dtype_ctypes" ^
-          iptv_tool.py
+    - name: Build EXE (单行命令)
+      run: pyinstaller --onefile --noconsole --additional-hooks-dir=./hooks iptv_tool.py
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
