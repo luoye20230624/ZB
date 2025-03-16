@@ -17,13 +17,17 @@ jobs:
     - name: Install dependencies
       run: |
         pip install pyinstaller==5.13.0
-        pip install opencv-python==4.7.0.72 numpy==1.23.5 requests==2.31.0 tqdm==4.66.1
+        pip install opencv-python==4.7.0.72 numpy==1.23.5
 
-    - name: Build EXE
+    - name: Build EXE (关键步骤)
       run: |
-        pyinstaller --onefile --noconsole --additional-hooks-dir=./hooks iptv_tool.py
+        pyinstaller --onefile --noconsole ^
+          --additional-hooks-dir=./hooks ^
+          --hidden-import "numpy.core._multiarray_umath" ^
+          --hidden-import "numpy.core._dtype_ctypes" ^
+          iptv_tool.py
 
-    - name: Upload EXE
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: IPTV-Tool
