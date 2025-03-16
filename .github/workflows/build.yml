@@ -23,9 +23,19 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller opencv-python-headless==4.7.0.72 requests==2.31.0 tqdm==4.66.1
 
+    - name: Clean previous builds
+      run: |
+        if exist dist rmdir /s /q dist
+        if exist build rmdir /s /q build
+
     - name: Build executable
       run: |
         pyinstaller --onefile --noconsole --name IPTV_Tool ./iptv_tool.py
+        dir dist  # 调试命令
+
+    - name: Fix OpenCV DLLs
+      run: |
+        copy C:\\hostedtoolcache\\windows\\Python\\3.10.*\\x64\\Lib\\site-packages\\cv2\\*.dll dist\\
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
