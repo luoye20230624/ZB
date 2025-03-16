@@ -23,19 +23,23 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller opencv-python-headless==4.7.0.72 requests==2.31.0 tqdm==4.66.1
 
+    # 修复步骤：使用 PowerShell 语法
     - name: Clean previous builds
       run: |
-        if exist dist rmdir /s /q dist
-        if exist build rmdir /s /q build
+        if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+        if (Test-Path build) { Remove-Item -Recurse -Force build }
 
     - name: Build executable
       run: |
         pyinstaller --onefile --noconsole --name IPTV_Tool ./iptv_tool.py
-        dir dist  # 调试命令
+        # 调试命令：显示生成的文件
+        Get-ChildItem -Recurse
 
+    # 修复 OpenCV 依赖问题
     - name: Fix OpenCV DLLs
       run: |
-        copy C:\\hostedtoolcache\\windows\\Python\\3.10.*\\x64\\Lib\\site-packages\\cv2\\*.dll dist\\
+        $cv2Path = (Get-Item (Get-Command python).Path).Directory.Parent.FullName + "\Lib\site-packages\cv2\*.dll"
+        Copy-Item $cv2Path -Destination dist
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
