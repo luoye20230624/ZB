@@ -10,7 +10,7 @@ from datetime import datetime
 from opencc import OpenCC
 
 # ================= 配置区域 =================
-QUAKE_API_KEY = "6abf676d-ccee-4f81-a2b7-aeb4dd9e31b1"  # 必须替换！
+QUAKE_API_KEY = "1111"  # 必须替换！
 QUAKE_PAGE_SIZE = 50
 MAX_RETRIES = 3
 TIMEOUT = 20
