@@ -11,6 +11,17 @@ from tqdm import tqdm
 from datetime import datetime
 from opencc import OpenCC
 import threading
+import sys
+import os
+
+# 修复临时目录路径问题
+if getattr(sys, 'frozen', False):
+    base_path = sys._MEIPASS
+    os.environ['PATH'] = os.pathsep.join([
+        os.path.join(base_path, 'cv2'),
+        os.path.join(base_path, 'numpy', '.libs'),
+        os.environ['PATH']
+    ])
 
 # 省份列表（中国所有省份）
 PROVINCES = [
