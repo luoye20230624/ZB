@@ -1,61 +1,30 @@
-name: Build IPTV Tool
+name: Build EXE
 
-on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch:
+on: [push]
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-    - name: Set up Python 3.10
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller opencv-python==4.7.0.72 requests==2.31.0 tqdm==4.66.1
+        pip install pyinstaller==5.13.0
+        pip install opencv-python==4.7.0.72 numpy==1.23.5 requests==2.31.0 tqdm==4.66.1
 
-    - name: Clean previous builds
+    - name: Build EXE
       run: |
-        if (Test-Path dist) { Remove-Item -Recurse -Force dist }
-        if (Test-Path build) { Remove-Item -Recurse -Force build }
+        pyinstaller --onefile --noconsole --additional-hooks-dir=./hooks iptv_tool.py
 
-    - name: Build executable
-      run: |
-        pyinstaller --onefile --noconsole --name IPTV_Tool ./iptv_tool.py
-
-    # 修正的OpenCV DLL处理步骤
-    - name: Fix OpenCV DLLs
-      run: |
-        # 精确获取Python安装路径
-        $pythonPath = (Get-Command python).Source
-        $cv2Path = [System.IO.Path]::Combine(
-            [System.IO.Path]::GetDirectoryName($pythonPath),
-            "..",
-            "Lib",
-            "site-packages",
-            "cv2",
-            "*.dll"
-        )
-        Copy-Item $cv2Path -Destination dist -ErrorAction SilentlyContinue
-
-    - name: Verify files
-      run: |
-        Write-Output "生成文件列表："
-        Get-ChildItem -Path dist -Recurse
-
-    - name: Upload artifact
+    - name: Upload EXE
       uses: actions/upload-artifact@v4
       with:
         name: IPTV-Tool
-        path: |
-          dist/IPTV_Tool.exe
-          rtp/*.txt
+        path: dist/iptv_tool.exe
