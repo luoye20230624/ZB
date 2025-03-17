@@ -65,7 +65,7 @@ OPERATORS = ["电信", "移动", "联通", "广电"]
 class IPTVApp:
     def __init__(self, root):
         self.root = root
-        root.title("IPTV组播源采集工具 v3.3")
+        root.title("IPTV组播源采集工具 v3.4")
         root.geometry("500x400")
         
         self._create_widgets()
@@ -226,14 +226,13 @@ class IPTVApp:
         """检测URL有效性（修复进度条问题）"""
         valid = []
         try:
-            # 修复进度条输出问题
             with tqdm(
                 urls, 
                 desc="检测节点", 
                 unit="个",
-                file=sys.stdout,  # 显式指定输出流
-                mininterval=0.5,  # 降低刷新频率
-                disable=None       # 自动判断是否显示
+                file=sys.stdout,
+                mininterval=0.5,
+                disable=None
             ) as pbar:
                 for url in pbar:
                     try:
@@ -245,6 +244,7 @@ class IPTVApp:
                         logger.warning(f"检测失败：{url} - {str(e)}")
                     finally:
                         time.sleep(0.1)
+                        pbar.update(1)
         except Exception as e:
             logger.error(f"进度条初始化失败：{str(e)}")
         return valid
@@ -306,8 +306,16 @@ class IPTVApp:
         self.clear_btn.config(state=tk.NORMAL)
 
 if __name__ == "__main__":
-    # 确保标准输出编码正确
-    sys.stdout = open(sys.stdout.fileno(), 'w', encoding='utf-8', errors='ignore')
+    # 安全处理标准输出
+    try:
+        if sys.stdout and hasattr(sys.stdout, 'fileno'):
+            sys.stdout = open(sys.stdout.fileno(), 
+                            mode='w',
+                            encoding='utf-8', 
+                            errors='ignore')
+    except Exception as e:
+        sys.stdout = open(os.devnull, 'w')
+    
     root = tk.Tk()
     app = IPTVApp(root)
     root.mainloop()
