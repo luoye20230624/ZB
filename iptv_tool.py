@@ -65,7 +65,7 @@ OPERATORS = ["电信", "移动", "联通", "广电"]
 class IPTVApp:
     def __init__(self, root):
         self.root = root
-        root.title("IPTV组播源采集工具 v3.2")
+        root.title("IPTV组播源采集工具 v3.3")
         root.geometry("500x400")
         
         self._create_widgets()
@@ -157,7 +157,6 @@ class IPTVApp:
 
     def _run_collection(self, api_key, province, operator):
         try:
-            # 新增的关键方法调用
             self._create_config(province, operator)
             
             urls = self._quake_search(api_key, province, operator)
@@ -175,7 +174,7 @@ class IPTVApp:
             self._enable_ui()
 
     def _create_config(self, province, operator):
-        """创建配置文件（新增方法）"""
+        """创建配置文件"""
         try:
             config_dir = os.path.join(os.path.expanduser('~'), 'Documents', 'IPTV-Configs')
             os.makedirs(config_dir, exist_ok=True)
@@ -224,19 +223,30 @@ class IPTVApp:
             raise
 
     def _check_urls(self, urls, mcast):
-        """检测URL有效性"""
+        """检测URL有效性（修复进度条问题）"""
         valid = []
-        with tqdm(urls, desc="检测节点", unit="个") as pbar:
-            for url in pbar:
-                try:
-                    cap = cv2.VideoCapture(f"{url}/rtp/{mcast}")
-                    if cap.isOpened() and cap.read()[0]:
-                        valid.append(url)
-                    cap.release()
-                except Exception as e:
-                    logger.warning(f"检测失败：{url} - {str(e)}")
-                finally:
-                    time.sleep(0.1)
+        try:
+            # 修复进度条输出问题
+            with tqdm(
+                urls, 
+                desc="检测节点", 
+                unit="个",
+                file=sys.stdout,  # 显式指定输出流
+                mininterval=0.5,  # 降低刷新频率
+                disable=None       # 自动判断是否显示
+            ) as pbar:
+                for url in pbar:
+                    try:
+                        cap = cv2.VideoCapture(f"{url}/rtp/{mcast}")
+                        if cap.isOpened() and cap.read()[0]:
+                            valid.append(url)
+                        cap.release()
+                    except Exception as e:
+                        logger.warning(f"检测失败：{url} - {str(e)}")
+                    finally:
+                        time.sleep(0.1)
+        except Exception as e:
+            logger.error(f"进度条初始化失败：{str(e)}")
         return valid
 
     def _save_playlist(self, province, operator, urls):
@@ -296,6 +306,8 @@ class IPTVApp:
         self.clear_btn.config(state=tk.NORMAL)
 
 if __name__ == "__main__":
+    # 确保标准输出编码正确
+    sys.stdout = open(sys.stdout.fileno(), 'w', encoding='utf-8', errors='ignore')
     root = tk.Tk()
     app = IPTVApp(root)
     root.mainloop()
