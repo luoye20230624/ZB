@@ -24,7 +24,6 @@ def setup_logging():
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     
-    # 文件日志（最多保留3个10MB文件）
     file_handler = RotatingFileHandler(
         log_file, maxBytes=10*1024*1024, backupCount=3, encoding='utf-8'
     )
@@ -33,7 +32,6 @@ def setup_logging():
     )
     file_handler.setFormatter(file_formatter)
     
-    # 控制台日志
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
     
@@ -67,7 +65,7 @@ OPERATORS = ["电信", "移动", "联通", "广电"]
 class IPTVApp:
     def __init__(self, root):
         self.root = root
-        root.title("IPTV组播源采集工具 v3.1")
+        root.title("IPTV组播源采集工具 v3.2")
         root.geometry("500x400")
         
         self._create_widgets()
@@ -159,7 +157,9 @@ class IPTVApp:
 
     def _run_collection(self, api_key, province, operator):
         try:
+            # 新增的关键方法调用
             self._create_config(province, operator)
+            
             urls = self._quake_search(api_key, province, operator)
             valid_urls = self._check_urls(urls, "239.0.0.1:1234")
             
@@ -173,6 +173,22 @@ class IPTVApp:
             self._show_error(f"错误：{str(e)} (详情请查看error.log)")
         finally:
             self._enable_ui()
+
+    def _create_config(self, province, operator):
+        """创建配置文件（新增方法）"""
+        try:
+            config_dir = os.path.join(os.path.expanduser('~'), 'Documents', 'IPTV-Configs')
+            os.makedirs(config_dir, exist_ok=True)
+            config_file = os.path.join(config_dir, f"{province}_{operator}.txt")
+            
+            if not os.path.exists(config_file):
+                with open(config_file, 'w', encoding='utf-8') as f:
+                    f.write(f"{province}{operator},#genre#\nCCTV测试频道,rtp://239.0.0.1:1234\n")
+            logger.debug(f"配置文件已创建：{config_file}")
+            return True
+        except Exception as e:
+            logger.error(f"创建配置文件失败：{str(e)}")
+            raise
 
     def _quake_search(self, api_key, province, operator):
         """执行Quake搜索"""
@@ -207,7 +223,43 @@ class IPTVApp:
             logger.error("API请求失败", exc_info=True)
             raise
 
-    # ...（其他方法保持不变，包括_check_urls、_save_playlist等）
+    def _check_urls(self, urls, mcast):
+        """检测URL有效性"""
+        valid = []
+        with tqdm(urls, desc="检测节点", unit="个") as pbar:
+            for url in pbar:
+                try:
+                    cap = cv2.VideoCapture(f"{url}/rtp/{mcast}")
+                    if cap.isOpened() and cap.read()[0]:
+                        valid.append(url)
+                    cap.release()
+                except Exception as e:
+                    logger.warning(f"检测失败：{url} - {str(e)}")
+                finally:
+                    time.sleep(0.1)
+        return valid
+
+    def _save_playlist(self, province, operator, urls):
+        """保存播放列表"""
+        try:
+            docs_path = os.path.join(os.path.expanduser('~'), 'Documents')
+            output_dir = os.path.join(docs_path, "IPTV-Playlists")
+            os.makedirs(output_dir, exist_ok=True)
+            output_file = os.path.join(output_dir, f"{province}{operator}.txt")
+            
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(f"{province}{operator},#genre#\n")
+                for url in urls:
+                    f.write(f"CCTV测试频道,{url}/rtp/239.0.0.1:1234\n")
+            
+            if os.path.getsize(output_file) < 50:
+                raise ValueError("生成文件内容异常")
+                
+            logger.info(f"文件已保存：{output_file}")
+            return True
+        except Exception as e:
+            logger.error("保存失败", exc_info=True)
+            return False
 
     def _show_error(self, message, persistent=False):
         """显示错误信息"""
