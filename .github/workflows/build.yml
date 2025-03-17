@@ -1,37 +1,31 @@
-- name: Clear GitHub Actions cache
-  uses: actions/cache@v2
-  with:
-    path: /tmp
-    key: ${{ runner.os }}-build-${{ github.sha }}
+name: Build Executable
 
-name: Build EXE
-
-on:
-  workflow_dispatch:  # 只允许手动触发
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v2
 
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.9
+        python-version: '3.9'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller pyqt5
+        pip install pyinstaller opencv-python requests tqdm opencc-python-reimplemented
 
-    - name: Run PyInstaller
+    - name: Build executable
       run: |
-        pyinstaller --onefile --windowed iptv_tool.py
+        pyinstaller --onefile --windowed --add-data "rtp/*.txt;rtp" iptv_finder_gui.py
 
-    - name: Upload EXE file
-      uses: actions/upload-artifact@v2  # 使用明确的版本v2
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
       with:
-        name: iptv_finder_full.exe
-        path: dist/iptv_finder_full.exe
+        name: iptv-finder
+        path: dist/
