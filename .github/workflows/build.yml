@@ -1,12 +1,7 @@
 name: Build EXE
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:  # 只允许手动触发
 
 jobs:
   build:
@@ -30,7 +25,7 @@ jobs:
         pyinstaller --onefile --windowed iptv_tool.py
 
     - name: Upload EXE file
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: iptv_finder_full.exe
         path: dist/iptv_finder_full.exe
