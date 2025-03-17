@@ -6,10 +6,7 @@ import time
 import requests
 import json
 import cv2
-import re
 from tqdm import tqdm
-from datetime import datetime
-from opencc import OpenCC
 import threading
 import sys
 import logging
@@ -41,15 +38,6 @@ def setup_logging():
 
 logger = setup_logging()
 
-# ------------------ 路径修复 ------------------
-if getattr(sys, 'frozen', False):
-    base_path = sys._MEIPASS
-    os.environ['PATH'] = os.pathsep.join([
-        os.path.join(base_path, 'cv2'),
-        os.path.join(base_path, 'numpy', '.libs'),
-        os.environ['PATH']
-    ])
-
 # ------------------ 常量定义 ------------------
 PROVINCES = [
     "北京", "天津", "河北", "山西", "内蒙古", "辽宁", "吉林", "黑龙江",
@@ -64,24 +52,23 @@ OPERATORS = ["电信", "移动", "联通", "广电"]
 class IPTVApp:
     def __init__(self, root):
         self.root = root
-        root.title("IPTV组播源采集工具 v4.0")
+        root.title("IPTV组播源采集工具 v4.1")
         root.geometry("500x400")
         
-        # 初始化文件目录
         self.base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
         self._init_dirs()
-        
         self._create_widgets()
         self._setup_ui()
 
     def _init_dirs(self):
-        """创建必要目录结构"""
+        """初始化存储目录"""
         self.config_dir = os.path.join(self.base_dir, 'config')
         self.playlist_dir = os.path.join(self.base_dir, 'playlist')
         os.makedirs(self.config_dir, exist_ok=True)
         os.makedirs(self.playlist_dir, exist_ok=True)
 
     def _create_widgets(self):
+        """创建界面组件"""
         self.main_frame = ttk.Frame(self.root, padding=20)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
         
@@ -122,12 +109,20 @@ class IPTVApp:
         self.clear_btn.pack(side=tk.LEFT, padx=5)
 
     def _setup_ui(self):
+        """初始化界面状态"""
         self.province_combo.current(0)
         self.operator_combo.current(0)
         self.main_frame.columnconfigure(1, weight=1)
         self.main_frame.rowconfigure(4, weight=1)
 
+    def _clear_status(self):
+        """清除状态信息"""
+        self.status_text.configure(state=tk.NORMAL)
+        self.status_text.delete(1.0, tk.END)
+        self.status_text.configure(state=tk.DISABLED)
+
     def _start_process(self):
+        """启动采集流程"""
         api_key = self.api_entry.get().strip()
         province = self.province_combo.get()
         operator = self.operator_combo.get()
@@ -144,7 +139,7 @@ class IPTVApp:
         thread.start()
 
     def _validate_input(self, api_key, province, operator):
-        """验证输入有效性（支持36位API密钥）"""
+        """验证输入有效性"""
         allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")
         
         if len(api_key) != 36:
@@ -166,9 +161,9 @@ class IPTVApp:
         return True
 
     def _run_collection(self, api_key, province, operator):
+        """执行采集任务"""
         try:
             self._create_config(province, operator)
-            
             urls = self._quake_search(api_key, province, operator)
             valid_urls = self._check_urls(urls, "239.0.0.1:1234")
             
@@ -192,7 +187,6 @@ class IPTVApp:
                 with open(config_file, 'w', encoding='utf-8') as f:
                     f.write(f"{province}{operator},#genre#\nCCTV测试频道,rtp://239.0.0.1:1234\n")
             logger.debug(f"配置文件已创建：{config_file}")
-            return True
         except Exception as e:
             logger.error(f"创建配置文件失败：{str(e)}")
             raise
@@ -231,25 +225,19 @@ class IPTVApp:
             raise
 
     def _check_urls(self, urls, mcast):
-        """检测URL有效性（增强版）"""
+        """检测URL有效性"""
         valid = []
         try:
-            # 禁用进度条显示
             with tqdm(urls, desc="检测节点", unit="个", disable=True) as pbar:
                 for url in pbar:
                     try:
-                        # 设置超时参数
                         cap = cv2.VideoCapture(f"{url}/rtp/{mcast}", cv2.CAP_FFMPEG)
-                        cap.set(cv2.CAP_PROP_TIMEOUT, 5000)  # 5秒超时
+                        cap.set(cv2.CAP_PROP_TIMEOUT, 5000)
                         
-                        # 检测连接和视频流
-                        if cap.isOpened():
-                            ret, frame = cap.read()
-                            if ret:
-                                valid.append(url)
-                                logger.debug(f"有效节点：{url}")
+                        if cap.isOpened() and cap.read()[0]:
+                            valid.append(url)
+                            logger.debug(f"有效节点：{url}")
                         cap.release()
-                        
                     except Exception as e:
                         logger.warning(f"检测异常：{url} - {str(e)}")
                     finally:
@@ -277,10 +265,35 @@ class IPTVApp:
             logger.error("保存失败", exc_info=True)
             return False
 
-    # ...（状态显示相关方法保持不变）...
+    def _show_error(self, message, persistent=False):
+        """显示错误信息"""
+        self._update_status(f"[错误] {message}", "red", persistent)
+
+    def _show_success(self, message, persistent=False):
+        """显示成功信息"""
+        self._update_status(f"[成功] {message}", "green", persistent)
+
+    def _update_status(self, message, color="black", persistent=False):
+        """更新状态信息"""
+        self.status_text.configure(state=tk.NORMAL)
+        self.status_text.insert(tk.END, message + "\n")
+        self.status_text.see(tk.END)
+        self.status_text.configure(state=tk.DISABLED, foreground=color)
+        
+        if not persistent:
+            self.root.after(5000, self._clear_status)
+
+    def _disable_ui(self):
+        """禁用界面控件"""
+        self.start_btn.config(state=tk.DISABLED)
+        self.clear_btn.config(state=tk.DISABLED)
+
+    def _enable_ui(self):
+        """启用界面控件"""
+        self.start_btn.config(state=tk.NORMAL)
+        self.clear_btn.config(state=tk.NORMAL)
 
 if __name__ == "__main__":
-    # 安全处理标准输出
     try:
         if sys.stdout and hasattr(sys.stdout, 'fileno'):
             sys.stdout = open(sys.stdout.fileno(), 
