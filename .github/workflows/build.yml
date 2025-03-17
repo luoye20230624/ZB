@@ -1,30 +1,36 @@
 name: Build EXE
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v2
       with:
-        python-version: '3.10'
+        python-version: 3.9
 
     - name: Install dependencies
       run: |
-        pip install pyinstaller==5.13.0
-        pip install opencv-python==4.7.0.72 numpy==1.23.5 requests==2.31.0 tqdm==4.66.1 opencc==1.1.9
+        python -m pip install --upgrade pip
+        pip install pyinstaller pyqt5
 
-    - name: Build EXE
-      run: pyinstaller --onefile --noconsole iptv_tool.py
+    - name: Run PyInstaller
+      run: |
+        pyinstaller --onefile --windowed iptv_tool.py
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
+    - name: Upload EXE file
+      uses: actions/upload-artifact@v2
       with:
-        name: IPTV-Tool
-        path: dist/iptv_tool.exe
+        name: iptv_finder_full.exe
+        path: dist/iptv_finder_full.exe
