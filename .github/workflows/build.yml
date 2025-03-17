@@ -1,15 +1,14 @@
 name: Build EXE
 
 on:
-  workflow_dispatch: # 仅手动触发
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Set up Python 3.10
       uses: actions/setup-python@v4
@@ -18,17 +17,13 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
         pip install pyinstaller==5.13.0
         pip install opencv-python==4.7.0.72 numpy==1.23.5
         pip install requests==2.31.0 tqdm==4.66.1 opencc==1.1.9
 
+    # 关键修改：使用单行命令
     - name: Build executable
-      run: |
-        pyinstaller --onefile --noconsole ^
-          --hidden-import opencc ^
-          --hidden-import "numpy.core._multiarray_umath" ^
-          iptv_tool.py
+      run: pyinstaller --onefile --noconsole --hidden-import opencc --hidden-import "numpy.core._multiarray_umath" iptv_tool.py
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
