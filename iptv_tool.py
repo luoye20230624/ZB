@@ -1,4 +1,37 @@
 # iptv_tool.py
+# 在文件最开头添加
+import sys
+import os
+import logging
+from logging.handlers import RotatingFileHandler
+
+def setup_logging():
+    log_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    log_file = os.path.join(log_dir, 'error.log')
+    
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    
+    file_handler = RotatingFileHandler(
+        log_file, maxBytes=10*1024*1024, backupCount=3, encoding='utf-8'
+    )
+    file_formatter = logging.Formatter(
+        '%(asctime)s [%(levelname)s] %(message)s'
+    )
+    file_handler.setFormatter(file_formatter)
+    
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    
+    return logger
+
+logger = setup_logging()
+
+# 原有其他导入和代码保持不变...
+
 import tkinter as tk
 from tkinter import ttk
 import os
