@@ -468,11 +468,11 @@ def check_and_write_file(input_file, output_file, keywords):
         print(f"未提取到关键词,不创建输出文件 {output_file}。")
 
 # 按类别提取关键词并写入文件
-check_and_write_file('2.txt',  'a.txt',  keywords="央视频道&爬虫, CCTV, CHC,8K, 4K, 4k")
-check_and_write_file('2.txt',  'b.txt',  keywords="卫视频道&爬虫, 卫视, 凤凰, 星空")
+check_and_write_file('2.txt',  'a.txt',  keywords="央视频道&爬虫, CCTV, 8K, 4K, 4k")
+check_and_write_file('2.txt',  'b.txt',  keywords="卫视频道&爬虫, 卫视, CHC, 凤凰, 星空")
 check_and_write_file('2.txt',  'c0.txt',  keywords="央视数字&爬虫, 第一剧场, 怀旧剧场, 风云音乐, 风云剧场, 欢笑剧场, 都市剧场, 高清电影, 家庭影院, 动作电影, 影迷, 峨眉, 重温, 女性, 地理")
 check_and_write_file('2.txt',  'c.txt',  keywords="数字频道&爬虫, 爱动漫, SiTV, 爱怀旧, 爱经典, 爱科幻, 爱青春, 爱悬疑, 爱幼教, 爱院线")
-check_and_write_file('2.txt',  'd.txt',  keywords="省级频道&爬虫, 北京")
+check_and_write_file('2.txt',  'd.txt',  keywords="省级频道&爬虫, 湖南, 北京")
 ###############################################################################################################################################################################################################################
 ##############################################################对生成的文件进行合并
 file_contents = []
