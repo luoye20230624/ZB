@@ -1,3 +1,9 @@
+- name: Clear GitHub Actions cache
+  uses: actions/cache@v2
+  with:
+    path: /tmp
+    key: ${{ runner.os }}-build-${{ github.sha }}
+
 name: Build EXE
 
 on:
