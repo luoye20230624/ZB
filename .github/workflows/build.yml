@@ -8,12 +8,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4  # 更新到v3版本
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4  # 更新到v4版本
       with:
-        python-version: '3.9'
+        python-version: '3.10'  # 推荐使用更新的Python版本
 
     - name: Install dependencies
       run: |
@@ -25,7 +25,7 @@ jobs:
         pyinstaller --onefile --windowed --add-data "rtp/*.txt;rtp" iptv_finder_gui.py
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4  # 更新到v3版本
       with:
         name: iptv-finder
         path: dist/
