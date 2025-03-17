@@ -52,7 +52,7 @@ OPERATORS = ["电信", "移动", "联通", "广电"]
 class IPTVApp:
     def __init__(self, root):
         self.root = root
-        root.title("IPTV组播源采集工具 v4.4")
+        root.title("IPTV组播源采集工具 v4.5")
         root.geometry("500x400")
         
         self.base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -240,18 +240,21 @@ class IPTVApp:
             with tqdm(urls, desc="检测节点", unit="个", disable=True) as pbar:
                 for url in pbar:
                     try:
+                        logger.debug(f"开始检测节点：{url}")
                         # 第一阶段：状态页检测
                         if not self._check_status_page(url):
                             continue
                             
                         # 第二阶段：组播流检测
+                        logger.debug(f"进入组播检测阶段：{url}")
                         if self._check_multicast_stream(url, mcast):
                             valid.append(url)
+                            logger.info(f"发现有效节点：{url}")
                             
                     except Exception as e:
                         logger.warning(f"检测异常：{url} - {str(e)}")
                     finally:
-                        time.sleep(0.1)
+                        time.sleep(1)  # 防止请求过载
         except Exception as e:
             logger.error(f"检测流程异常：{str(e)}")
         return valid
@@ -269,37 +272,43 @@ class IPTVApp:
         return False
 
     def _check_multicast_stream(self, base_url, mcast):
-        """组播流检测（带超时）"""
+        """组播流检测（增强版）"""
         stream_url = f"{base_url}/rtp/{mcast}"
+        logger.debug(f"开始组播检测：{stream_url}")
         result = [False]
         
         def _capture():
             try:
-                cap = cv2.VideoCapture(f"rtp://{stream_url}", cv2.CAP_FFMPEG)
-                if cap.isOpened() and cap.read()[0]:
-                    result[0] = True
-                cap.release()
-            except:
-                pass
+                cap = cv2.VideoCapture(stream_url, cv2.CAP_FFMPEG)
+                if cap.isOpened():
+                    start_time = time.time()
+                    # 8秒内持续检测帧数据
+                    while (time.time() - start_time) < 8:
+                        ret, _ = cap.read()
+                        if ret:
+                            result[0] = True
+                            break
+                        time.sleep(0.1)
+                    cap.release()
+            except Exception as e:
+                logger.debug(f"流检测异常：{stream_url} - {str(e)}")
         
         thread = threading.Thread(target=_capture)
         thread.start()
-        thread.join(5)  # 5秒超时
+        thread.join(10)  # 总超时10秒
         
-        if result[0]:
-            logger.debug(f"组播流有效：rtp://{stream_url}")
-            return True
-        return False
+        logger.debug(f"检测结果：{stream_url} => {'有效' if result[0] else '无效'}")
+        return result[0]
 
     def _save_playlist(self, province, operator, urls, mcast):
-        """保存播放列表（HTTP协议）"""
+        """保存播放列表"""
         try:
             output_file = os.path.join(self.playlist_dir, f"{province}{operator}.txt")
             
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(f"{province}{operator},#genre#\n")
                 for url in urls:
-                    f.write(f"CCTV测试频道,{url}/rtp/{mcast}\n")  # 正确HTTP格式
+                    f.write(f"CCTV测试频道,{url}/rtp/{mcast}\n")
             
             if os.path.getsize(output_file) < 50:
                 raise ValueError("生成文件内容异常")
