@@ -52,7 +52,7 @@ OPERATORS = ["电信", "移动", "联通", "广电"]
 class IPTVApp:
     def __init__(self, root):
         self.root = root
-        root.title("IPTV组播源采集工具 v4.1")
+        root.title("IPTV组播源采集工具 v4.4")
         root.geometry("500x400")
         
         self.base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -163,11 +163,17 @@ class IPTVApp:
     def _run_collection(self, api_key, province, operator):
         """执行采集任务"""
         try:
-            self._create_config(province, operator)
+            # 从配置文件加载组播地址
+            mcast = self._load_multicast_address(province, operator)
+            if not mcast:
+                self._show_error("找不到组播配置", persistent=True)
+                return
+                
             urls = self._quake_search(api_key, province, operator)
-            valid_urls = self._check_urls(urls, "239.0.0.1:1234")
+            valid_urls = self._check_urls(urls, mcast)
             
-            if valid_urls and self._save_playlist(province, operator, valid_urls):
+            if valid_urls:
+                self._save_playlist(province, operator, valid_urls, mcast)
                 self._show_success(f"成功保存{len(valid_urls)}个有效节点")
             else:
                 self._show_error("未找到有效节点")
@@ -178,66 +184,37 @@ class IPTVApp:
         finally:
             self._enable_ui()
 
-    def _create_config(self, province, operator):
-        """创建配置文件"""
+    def _load_multicast_address(self, province, operator):
+        """从配置文件加载组播地址"""
+        config_file = os.path.join(self.config_dir, f"{province}_{operator}.txt")
         try:
-            config_file = os.path.join(self.config_dir, f"{province}_{operator}.txt")
-            
-            if not os.path.exists(config_file):
-                with open(config_file, 'w', encoding='utf-8') as f:
-                    f.write(f"{province}{operator},#genre#\nCCTV测试频道,rtp://239.0.0.1:1234\n")
-            logger.debug(f"配置文件已创建：{config_file}")
+            with open(config_file, 'r', encoding='utf-8') as f:
+                for line in f.readlines():
+                    if line.startswith("CCTV"):
+                        parts = line.split(',')
+                        if len(parts) > 1 and 'rtp://' in parts[1]:
+                            return parts[1].strip().split('rtp://')[1]
+            logger.error(f"配置文件中未找到有效组播地址：{config_file}")
+            return None
         except Exception as e:
-            logger.error(f"创建配置文件失败：{str(e)}")
-            raise
-
-    def _quake_search(self, api_key, province, operator):
-        """执行Quake搜索"""
-        try:
-            headers = {"X-QuakeToken": api_key}
-            query = {
-                "query": f'Rozhuk AND province:"{province}" AND isp:"{operator}"',
-                "size": 50,
-                "include": ["ip", "port"]
-            }
-            
-            logger.debug(f"请求参数：{json.dumps(query, indent=2)}")
-            response = requests.post(
-                "https://quake.360.net/api/v3/search/quake_service",
-                headers=headers,
-                json=query,
-                timeout=20
-            )
-            response.raise_for_status()
-            
-            data = response.json()
-            logger.debug(f"API响应：{json.dumps(data, indent=2)}")
-            
-            if data.get("code") != 0:
-                raise ValueError(data.get("message", "API返回未知错误"))
-                
-            return [f"http://{item['ip']}:{item['port']}" 
-                   for item in data.get("data", []) 
-                   if item.get("ip") and str(item.get("port", "")).isdigit()]
-            
-        except Exception as e:
-            logger.error("API请求失败", exc_info=True)
-            raise
+            logger.error(f"加载配置文件失败：{str(e)}")
+            return None
 
     def _check_urls(self, urls, mcast):
-        """检测URL有效性"""
+        """双阶段检测流程"""
         valid = []
         try:
             with tqdm(urls, desc="检测节点", unit="个", disable=True) as pbar:
                 for url in pbar:
                     try:
-                        cap = cv2.VideoCapture(f"{url}/rtp/{mcast}", cv2.CAP_FFMPEG)
-                        cap.set(cv2.CAP_PROP_TIMEOUT, 5000)
-                        
-                        if cap.isOpened() and cap.read()[0]:
+                        # 第一阶段：状态页检测
+                        if not self._check_status_page(url):
+                            continue
+                            
+                        # 第二阶段：组播流检测
+                        if self._check_multicast_stream(url, mcast):
                             valid.append(url)
-                            logger.debug(f"有效节点：{url}")
-                        cap.release()
+                            
                     except Exception as e:
                         logger.warning(f"检测异常：{url} - {str(e)}")
                     finally:
@@ -246,20 +223,56 @@ class IPTVApp:
             logger.error(f"检测流程异常：{str(e)}")
         return valid
 
-    def _save_playlist(self, province, operator, urls):
-        """保存播放列表"""
+    def _check_status_page(self, base_url):
+        """状态页检测（HTTP 200验证）"""
+        status_url = f"{base_url}/stat"
+        try:
+            response = requests.get(status_url, timeout=5)
+            if response.status_code == 200:
+                logger.debug(f"状态页可访问：{status_url}")
+                return True
+        except Exception as e:
+            logger.debug(f"状态页检测失败：{status_url} - {str(e)}")
+        return False
+
+    def _check_multicast_stream(self, base_url, mcast):
+        """组播流检测（带超时）"""
+        result = [False]
+        
+        def _capture():
+            try:
+                stream_url = f"rtp://{mcast}"
+                cap = cv2.VideoCapture(stream_url, cv2.CAP_FFMPEG)
+                if cap.isOpened() and cap.read()[0]:
+                    result[0] = True
+                cap.release()
+            except:
+                pass
+        
+        thread = threading.Thread(target=_capture)
+        thread.start()
+        thread.join(5)  # 5秒超时
+        
+        if result[0]:
+            logger.debug(f"组播流有效：rtp://{mcast}")
+            return True
+        return False
+
+    def _save_playlist(self, province, operator, urls, mcast):
+        """保存播放列表（HTTP协议）"""
         try:
             output_file = os.path.join(self.playlist_dir, f"{province}{operator}.txt")
             
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(f"{province}{operator},#genre#\n")
                 for url in urls:
-                    f.write(f"CCTV测试频道,{url}/rtp/239.0.0.1:1234\n")
+                    # 生成正确的HTTP地址格式
+                    f.write(f"CCTV测试频道,{url}/rtp/{mcast}\n")
             
             if os.path.getsize(output_file) < 50:
                 raise ValueError("生成文件内容异常")
                 
-            logger.info(f"文件已保存：{output_file}")
+            logger.info(f"播放列表已保存：{output_file}")
             return True
         except Exception as e:
             logger.error("保存失败", exc_info=True)
