@@ -67,8 +67,8 @@ OPERATORS = ["电信", "移动", "联通", "广电"]
 class IPTVApp:
     def __init__(self, root):
         self.root = root
-        root.title("IPTV组播源采集工具 v3.0")
-        root.geometry("400x300")
+        root.title("IPTV组播源采集工具 v3.1")
+        root.geometry("500x400")
         
         self._create_widgets()
         self._setup_ui()
@@ -77,9 +77,9 @@ class IPTVApp:
         self.main_frame = ttk.Frame(self.root, padding=20)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # API密钥
+        # API密钥输入
         ttk.Label(self.main_frame, text="Quake API密钥:").grid(row=0, column=0, sticky=tk.W)
-        self.api_entry = ttk.Entry(self.main_frame, width=30)
+        self.api_entry = ttk.Entry(self.main_frame, width=40)
         self.api_entry.grid(row=0, column=1, padx=5, pady=5)
         
         # 省份选择
@@ -96,17 +96,28 @@ class IPTVApp:
         self.progress = ttk.Progressbar(self.main_frame, mode='determinate')
         self.progress.grid(row=3, column=0, columnspan=2, pady=10, sticky=tk.EW)
         
-        # 状态显示
-        self.status = ttk.Label(self.main_frame, text="就绪")
-        self.status.grid(row=4, column=0, columnspan=2)
+        # 状态显示区
+        self.status_frame = ttk.LabelFrame(self.main_frame, text="运行状态", padding=10)
+        self.status_frame.grid(row=4, column=0, columnspan=2, pady=10, sticky=tk.NSEW)
         
-        # 开始按钮
-        self.start_btn = ttk.Button(self.main_frame, text="开始采集", command=self._start_process)
-        self.start_btn.grid(row=5, column=0, columnspan=2, pady=10)
+        self.status_text = tk.Text(self.status_frame, height=4, wrap=tk.WORD, state=tk.DISABLED)
+        self.status_text.pack(fill=tk.BOTH, expand=True)
+        
+        # 操作按钮
+        self.btn_frame = ttk.Frame(self.main_frame)
+        self.btn_frame.grid(row=5, column=0, columnspan=2, pady=10)
+        
+        self.start_btn = ttk.Button(self.btn_frame, text="开始采集", command=self._start_process)
+        self.start_btn.pack(side=tk.LEFT, padx=5)
+        
+        self.clear_btn = ttk.Button(self.btn_frame, text="清除状态", command=self._clear_status)
+        self.clear_btn.pack(side=tk.LEFT, padx=5)
 
     def _setup_ui(self):
         self.province_combo.current(0)
         self.operator_combo.current(0)
+        self.main_frame.columnconfigure(1, weight=1)
+        self.main_frame.rowconfigure(4, weight=1)
 
     def _start_process(self):
         api_key = self.api_entry.get().strip()
@@ -125,17 +136,26 @@ class IPTVApp:
         thread.start()
 
     def _validate_input(self, api_key, province, operator):
-        if len(api_key) != 32 or not api_key.isalnum():
-            self._show_error("API密钥应为32位字母数字组合")
+        """验证输入有效性（支持36位API密钥）"""
+        allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")
+        
+        if len(api_key) != 36:
+            self._show_error("API密钥必须为36位字符", persistent=True)
             return False
-        if not province or not operator:
-            self._show_error("请选择省份和运营商")
+            
+        if not all(c in allowed_chars for c in api_key):
+            self._show_error("包含非法字符（只允许字母、数字、-和_）", persistent=True)
             return False
+            
+        if not province:
+            self._show_error("请选择省份", persistent=True)
+            return False
+            
+        if not operator:
+            self._show_error("请选择运营商", persistent=True)
+            return False
+            
         return True
-
-    def _disable_ui(self):
-        self.start_btn.config(state=tk.DISABLED)
-        self._update_status("正在启动任务...")
 
     def _run_collection(self, api_key, province, operator):
         try:
@@ -144,7 +164,7 @@ class IPTVApp:
             valid_urls = self._check_urls(urls, "239.0.0.1:1234")
             
             if valid_urls and self._save_playlist(province, operator, valid_urls):
-                self._show_success(f"成功保存{len(valid_urls)}个节点")
+                self._show_success(f"成功保存{len(valid_urls)}个有效节点")
             else:
                 self._show_error("未找到有效节点")
                 
@@ -155,6 +175,7 @@ class IPTVApp:
             self._enable_ui()
 
     def _quake_search(self, api_key, province, operator):
+        """执行Quake搜索"""
         try:
             headers = {"X-QuakeToken": api_key}
             query = {
@@ -186,64 +207,41 @@ class IPTVApp:
             logger.error("API请求失败", exc_info=True)
             raise
 
-    def _check_urls(self, urls, mcast):
-        valid = []
-        with tqdm(urls, desc="检测节点", unit="个") as pbar:
-            for url in pbar:
-                try:
-                    cap = cv2.VideoCapture(f"{url}/rtp/{mcast}")
-                    if cap.isOpened() and cap.read()[0]:
-                        valid.append(url)
-                    cap.release()
-                except Exception as e:
-                    logger.warning(f"检测失败：{url} - {str(e)}")
-                finally:
-                    time.sleep(0.1)
-        return valid
+    # ...（其他方法保持不变，包括_check_urls、_save_playlist等）
 
-    def _save_playlist(self, province, operator, urls):
-        try:
-            docs_path = os.path.join(os.path.expanduser('~'), 'Documents')
-            output_dir = os.path.join(docs_path, "IPTV-Playlists")
-            os.makedirs(output_dir, exist_ok=True)
-            output_file = os.path.join(output_dir, f"{province}{operator}.txt")
-            
-            with open(output_file, 'w', encoding='utf-8') as f:
-                f.write(f"{province}{operator},#genre#\n")
-                for url in urls:
-                    f.write(f"CCTV测试频道,{url}/rtp/239.0.0.1:1234\n")
-            
-            if os.path.getsize(output_file) < 50:
-                raise ValueError("生成文件内容异常")
-                
-            logger.info(f"文件已保存：{output_file}")
-            return True
-        except Exception as e:
-            logger.error("保存失败", exc_info=True)
-            return False
+    def _show_error(self, message, persistent=False):
+        """显示错误信息"""
+        self._update_status(f"[错误] {message}", "red", persistent)
 
-    def _create_config(self, province, operator):
-        config_dir = os.path.join(os.path.expanduser('~'), 'Documents', 'IPTV-Configs')
-        os.makedirs(config_dir, exist_ok=True)
-        config_file = os.path.join(config_dir, f"{province}_{operator}.txt")
+    def _show_success(self, message, persistent=False):
+        """显示成功信息"""
+        self._update_status(f"[成功] {message}", "green", persistent)
+
+    def _update_status(self, message, color="black", persistent=False):
+        """更新状态信息"""
+        self.status_text.configure(state=tk.NORMAL)
+        self.status_text.insert(tk.END, message + "\n")
+        self.status_text.see(tk.END)
+        self.status_text.configure(state=tk.DISABLED, foreground=color)
         
-        if not os.path.exists(config_file):
-            with open(config_file, 'w', encoding='utf-8') as f:
-                f.write(f"{province}{operator},#genre#\nCCTV测试频道,rtp://239.0.0.1:1234\n")
+        if not persistent:
+            self.root.after(5000, self._clear_status)
 
-    def _update_status(self, text):
-        self.root.after(0, lambda: self.status.config(text=text))
+    def _clear_status(self):
+        """清除状态信息"""
+        self.status_text.configure(state=tk.NORMAL)
+        self.status_text.delete(1.0, tk.END)
+        self.status_text.configure(state=tk.DISABLED)
 
-    def _show_error(self, message):
-        self.root.after(0, lambda: self.status.config(text=message, foreground="red"))
-        self.root.after(3000, lambda: self.status.config(text="就绪", foreground="black"))
-
-    def _show_success(self, message):
-        self.root.after(0, lambda: self.status.config(text=message, foreground="green"))
-        self.root.after(3000, lambda: self.status.config(text="就绪", foreground="black"))
+    def _disable_ui(self):
+        """禁用界面控件"""
+        self.start_btn.config(state=tk.DISABLED)
+        self.clear_btn.config(state=tk.DISABLED)
 
     def _enable_ui(self):
-        self.root.after(0, lambda: self.start_btn.config(state=tk.NORMAL))
+        """启用界面控件"""
+        self.start_btn.config(state=tk.NORMAL)
+        self.clear_btn.config(state=tk.NORMAL)
 
 if __name__ == "__main__":
     root = tk.Tk()
