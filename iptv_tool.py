@@ -200,6 +200,39 @@ class IPTVApp:
             logger.error(f"加载配置文件失败：{str(e)}")
             return None
 
+    def _quake_search(self, api_key, province, operator):
+        """执行Quake API搜索"""
+        try:
+            headers = {"X-QuakeToken": api_key}
+            query = {
+                "query": f'Rozhuk AND province:"{province}" AND isp:"{operator}"',
+                "size": 50,
+                "include": ["ip", "port"]
+            }
+            
+            logger.debug(f"请求参数：{json.dumps(query, indent=2)}")
+            response = requests.post(
+                "https://quake.360.net/api/v3/search/quake_service",
+                headers=headers,
+                json=query,
+                timeout=20
+            )
+            response.raise_for_status()
+            
+            data = response.json()
+            logger.debug(f"API响应：{json.dumps(data, indent=2)}")
+            
+            if data.get("code") != 0:
+                raise ValueError(f"API错误：{data.get('message', '未知错误')}")
+                
+            return [f"http://{item['ip']}:{item['port']}" 
+                   for item in data.get("data", []) 
+                   if item.get("ip") and str(item.get("port", "")).isdigit()]
+            
+        except Exception as e:
+            logger.error("API请求失败", exc_info=True)
+            raise
+
     def _check_urls(self, urls, mcast):
         """双阶段检测流程"""
         valid = []
@@ -237,12 +270,12 @@ class IPTVApp:
 
     def _check_multicast_stream(self, base_url, mcast):
         """组播流检测（带超时）"""
+        stream_url = f"{base_url}/rtp/{mcast}"
         result = [False]
         
         def _capture():
             try:
-                stream_url = f"rtp://{mcast}"
-                cap = cv2.VideoCapture(stream_url, cv2.CAP_FFMPEG)
+                cap = cv2.VideoCapture(f"rtp://{stream_url}", cv2.CAP_FFMPEG)
                 if cap.isOpened() and cap.read()[0]:
                     result[0] = True
                 cap.release()
@@ -254,7 +287,7 @@ class IPTVApp:
         thread.join(5)  # 5秒超时
         
         if result[0]:
-            logger.debug(f"组播流有效：rtp://{mcast}")
+            logger.debug(f"组播流有效：rtp://{stream_url}")
             return True
         return False
 
@@ -266,8 +299,7 @@ class IPTVApp:
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(f"{province}{operator},#genre#\n")
                 for url in urls:
-                    # 生成正确的HTTP地址格式
-                    f.write(f"CCTV测试频道,{url}/rtp/{mcast}\n")
+                    f.write(f"CCTV测试频道,{url}/rtp/{mcast}\n")  # 正确HTTP格式
             
             if os.path.getsize(output_file) < 50:
                 raise ValueError("生成文件内容异常")
