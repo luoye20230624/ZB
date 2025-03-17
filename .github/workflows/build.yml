@@ -25,7 +25,7 @@ jobs:
         pyinstaller --onefile --windowed iptv_tool.py
 
     - name: Upload EXE file
-      uses: actions/upload-artifact@v4  # 使用明确的版本v2
+      uses: actions/upload-artifact@v4  # 使用明确的版本v4
       with:
-        name: iptv_tool.exe
+        name: iptv_tool
         path: dist/iptv_tool.exe
