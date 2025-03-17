@@ -6,7 +6,7 @@ import time
 import requests
 import json
 import cv2
-from tqdm import tqdm
+import random
 import threading
 import sys
 import logging
@@ -21,11 +21,12 @@ def setup_logging():
     logger.setLevel(logging.DEBUG)
     
     file_handler = RotatingFileHandler(
-        log_file, maxBytes=10*1024*1024, backupCount=3, encoding='utf-8'
+        log_file,
+        maxBytes=10*1024*1024,
+        backupCount=3,
+        encoding='utf-8'
     )
-    file_formatter = logging.Formatter(
-        '%(asctime)s [%(levelname)s] %(message)s'
-    )
+    file_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
     file_handler.setFormatter(file_formatter)
     
     console_handler = logging.StreamHandler()
@@ -52,7 +53,7 @@ OPERATORS = ["电信", "移动", "联通", "广电"]
 class IPTVApp:
     def __init__(self, root):
         self.root = root
-        root.title("IPTV组播源采集工具 v4.5")
+        root.title("IPTV组播源采集工具 v5.2")
         root.geometry("500x400")
         
         self.base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -161,22 +162,57 @@ class IPTVApp:
         return True
 
     def _run_collection(self, api_key, province, operator):
-        """执行采集任务"""
+        """执行采集任务核心逻辑"""
         try:
-            # 从配置文件加载组播地址
-            mcast = self._load_multicast_address(province, operator)
-            if not mcast:
-                self._show_error("找不到组播配置", persistent=True)
+            # 加载频道配置
+            channels = self._load_multicast_channels(province, operator)
+            if not channels:
+                self._show_error("没有可用的频道配置", persistent=True)
                 return
                 
-            urls = self._quake_search(api_key, province, operator)
-            valid_urls = self._check_urls(urls, mcast)
+            # 提取所有独立组播地址
+            mcast_addresses = list({mcast.split('rtp://')[1] for (_, mcast) in channels})
+            if len(mcast_addresses) < 3:
+                self._show_error("需要至少3个不同的组播地址", persistent=True)
+                return
+                
+            # 获取服务器列表
+            servers = self._quake_search(api_key, province, operator)
+            valid_servers = []
             
-            if valid_urls:
-                self._save_playlist(province, operator, valid_urls, mcast)
-                self._show_success(f"成功保存{len(valid_urls)}个有效节点")
+            # 服务器去重
+            seen_servers = set()
+            for server_url in servers:
+                server_identity = server_url.split('//')[1].split('/')[0]  # ip:port
+                if server_identity in seen_servers:
+                    continue
+                seen_servers.add(server_identity)
+                
+                # 状态页检测
+                if not self._check_status_page(server_url):
+                    continue
+                
+                # 随机选择3个地址检测
+                success_count = 0
+                selected_mcasts = random.sample(mcast_addresses, 3)
+                for mcast in selected_mcasts:
+                    if self._check_multicast_stream(server_url, mcast):
+                        success_count += 1
+                    else:
+                        break  # 任一失败即终止
+                
+                # 三个检测都成功则记录
+                if success_count == 3:
+                    valid_servers.append(server_url)
+                    logger.info(f"有效服务器：{server_url} 通过3/3检测")
+
+            # 生成播放列表
+            if valid_servers:
+                self._save_playlist(province, operator, valid_servers, channels)
+                total_entries = len(valid_servers) * len(channels)
+                self._show_success(f"发现{len(valid_servers)}个有效服务器，生成{total_entries}条播放地址")
             else:
-                self._show_error("未找到有效节点")
+                self._show_error("未找到有效服务器")
                 
         except Exception as e:
             logger.error("采集任务失败", exc_info=True)
@@ -184,24 +220,37 @@ class IPTVApp:
         finally:
             self._enable_ui()
 
-    def _load_multicast_address(self, province, operator):
-        """从配置文件加载组播地址"""
+    def _load_multicast_channels(self, province, operator):
+        """加载频道配置文件"""
         config_file = os.path.join(self.config_dir, f"{province}_{operator}.txt")
+        channels = []
         try:
             with open(config_file, 'r', encoding='utf-8') as f:
-                for line in f.readlines():
-                    if line.startswith("CCTV"):
-                        parts = line.split(',')
-                        if len(parts) > 1 and 'rtp://' in parts[1]:
-                            return parts[1].strip().split('rtp://')[1]
-            logger.error(f"配置文件中未找到有效组播地址：{config_file}")
-            return None
+                for line_num, line in enumerate(f, 1):
+                    line = line.strip()
+                    if line.startswith("#") or not line:
+                        continue
+                    if ',rtp://' not in line:
+                        logger.warning(f"配置文件第{line_num}行格式错误：{line}")
+                        continue
+                        
+                    parts = line.split(',rtp://', 1)
+                    name = parts[0].strip()
+                    address = 'rtp://' + parts[1].strip()
+                    channels.append((name, address))
+            
+            if not channels:
+                logger.error("配置文件中未找到有效频道")
+            else:
+                logger.info(f"成功加载 {len(channels)} 个频道配置")
+                
+            return channels
         except Exception as e:
-            logger.error(f"加载配置文件失败：{str(e)}")
-            return None
+            logger.error(f"配置文件加载失败：{str(e)}")
+            return []
 
     def _quake_search(self, api_key, province, operator):
-        """执行Quake API搜索"""
+        """执行Quake API查询"""
         try:
             headers = {"X-QuakeToken": api_key}
             query = {
@@ -210,7 +259,7 @@ class IPTVApp:
                 "include": ["ip", "port"]
             }
             
-            logger.debug(f"请求参数：{json.dumps(query, indent=2)}")
+            logger.debug(f"发送API请求：{json.dumps(query, indent=2)}")
             response = requests.post(
                 "https://quake.360.net/api/v3/search/quake_service",
                 headers=headers,
@@ -220,61 +269,38 @@ class IPTVApp:
             response.raise_for_status()
             
             data = response.json()
-            logger.debug(f"API响应：{json.dumps(data, indent=2)}")
+            logger.debug(f"收到API响应：{json.dumps(data, indent=2)}")
             
             if data.get("code") != 0:
                 raise ValueError(f"API错误：{data.get('message', '未知错误')}")
                 
-            return [f"http://{item['ip']}:{item['port']}" 
-                   for item in data.get("data", []) 
-                   if item.get("ip") and str(item.get("port", "")).isdigit()]
+            return [
+                f"http://{item['ip']}:{item['port']}"
+                for item in data.get("data", [])
+                if item.get("ip") and str(item.get("port", "")).isdigit()
+            ]
             
         except Exception as e:
             logger.error("API请求失败", exc_info=True)
             raise
 
-    def _check_urls(self, urls, mcast):
-        """双阶段检测流程"""
-        valid = []
-        try:
-            with tqdm(urls, desc="检测节点", unit="个", disable=True) as pbar:
-                for url in pbar:
-                    try:
-                        logger.debug(f"开始检测节点：{url}")
-                        # 第一阶段：状态页检测
-                        if not self._check_status_page(url):
-                            continue
-                            
-                        # 第二阶段：组播流检测
-                        logger.debug(f"进入组播检测阶段：{url}")
-                        if self._check_multicast_stream(url, mcast):
-                            valid.append(url)
-                            logger.info(f"发现有效节点：{url}")
-                            
-                    except Exception as e:
-                        logger.warning(f"检测异常：{url} - {str(e)}")
-                    finally:
-                        time.sleep(1)  # 防止请求过载
-        except Exception as e:
-            logger.error(f"检测流程异常：{str(e)}")
-        return valid
-
     def _check_status_page(self, base_url):
-        """状态页检测（HTTP 200验证）"""
+        """检测状态页可用性"""
         status_url = f"{base_url}/stat"
         try:
             response = requests.get(status_url, timeout=5)
             if response.status_code == 200:
                 logger.debug(f"状态页可访问：{status_url}")
                 return True
+            logger.debug(f"状态页异常响应：{status_url} ({response.status_code})")
+            return False
         except Exception as e:
             logger.debug(f"状态页检测失败：{status_url} - {str(e)}")
-        return False
+            return False
 
     def _check_multicast_stream(self, base_url, mcast):
-        """组播流检测（增强版）"""
+        """检测组播流有效性"""
         stream_url = f"{base_url}/rtp/{mcast}"
-        logger.debug(f"开始组播检测：{stream_url}")
         result = [False]
         
         def _capture():
@@ -282,8 +308,8 @@ class IPTVApp:
                 cap = cv2.VideoCapture(stream_url, cv2.CAP_FFMPEG)
                 if cap.isOpened():
                     start_time = time.time()
-                    # 8秒内持续检测帧数据
-                    while (time.time() - start_time) < 8:
+                    # 5秒内检测到有效帧即成功
+                    while (time.time() - start_time) < 5:
                         ret, _ = cap.read()
                         if ret:
                             result[0] = True
@@ -291,32 +317,43 @@ class IPTVApp:
                         time.sleep(0.1)
                     cap.release()
             except Exception as e:
-                logger.debug(f"流检测异常：{stream_url} - {str(e)}")
+                logger.debug(f"视频流检测异常：{stream_url} - {str(e)}")
         
+        logger.debug(f"开始检测组播流：{stream_url}")
         thread = threading.Thread(target=_capture)
         thread.start()
-        thread.join(10)  # 总超时10秒
+        thread.join(8)  # 总超时8秒
         
-        logger.debug(f"检测结果：{stream_url} => {'有效' if result[0] else '无效'}")
+        if result[0]:
+            logger.info(f"组播流有效：{stream_url}")
+        else:
+            logger.debug(f"组播流无效：{stream_url}")
         return result[0]
 
-    def _save_playlist(self, province, operator, urls, mcast):
-        """保存播放列表"""
+    def _save_playlist(self, province, operator, servers, channels):
+        """保存播放列表文件"""
         try:
             output_file = os.path.join(self.playlist_dir, f"{province}{operator}.txt")
+            entry_count = 0
             
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(f"{province}{operator},#genre#\n")
-                for url in urls:
-                    f.write(f"CCTV测试频道,{url}/rtp/{mcast}\n")
-            
-            if os.path.getsize(output_file) < 50:
-                raise ValueError("生成文件内容异常")
                 
-            logger.info(f"播放列表已保存：{output_file}")
+                # 写入所有有效组合
+                seen = set()
+                for server in servers:
+                    for (name, mcast_full) in channels:
+                        mcast = mcast_full.split('rtp://')[1]
+                        entry = f"{name},{server}/rtp/{mcast}"
+                        if entry not in seen:
+                            f.write(f"{entry}\n")
+                            seen.add(entry)
+                            entry_count += 1
+            
+            logger.info(f"成功写入 {entry_count} 条播放地址到 {output_file}")
             return True
         except Exception as e:
-            logger.error("保存失败", exc_info=True)
+            logger.error("保存播放列表失败", exc_info=True)
             return False
 
     def _show_error(self, message, persistent=False):
@@ -339,16 +376,17 @@ class IPTVApp:
 
     def _disable_ui(self):
         """禁用界面控件"""
-        self.start_btn.config(state=tk.DISABLED)
-        self.clear_btn.config(state=tk.DISABLED)
+        for widget in [self.start_btn, self.clear_btn]:
+            widget.config(state=tk.DISABLED)
 
     def _enable_ui(self):
         """启用界面控件"""
-        self.start_btn.config(state=tk.NORMAL)
-        self.clear_btn.config(state=tk.NORMAL)
+        for widget in [self.start_btn, self.clear_btn]:
+            widget.config(state=tk.NORMAL)
 
 if __name__ == "__main__":
     try:
+        # 处理控制台编码问题
         if sys.stdout and hasattr(sys.stdout, 'fileno'):
             sys.stdout = open(sys.stdout.fileno(), 
                             mode='w',
