@@ -53,7 +53,7 @@ OPERATORS = ["电信", "移动", "联通", "广电"]
 class IPTVApp:
     def __init__(self, root):
         self.root = root
-        root.title("IPTV组播源采集工具 v5.2")
+        root.title("IPTV组播源采集工具 v5.2 by luoye")
         root.geometry("500x400")
         
         self.base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
