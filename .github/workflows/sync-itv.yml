@@ -1,0 +1,43 @@
+name: Sync ITV Playlist
+
+on:
+  schedule:
+    - cron: '0 */12 * * *'  # 每12小时运行一次（UTC时间）
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0  # 获取完整提交历史
+
+      - name: 下载最新播放列表
+        run: |
+          # 下载到临时文件避免空文件覆盖
+          curl -s -o temp.m3u https://raw.bgithub.xyz/sln654360/itv/refs/heads/main/itv.m3u
+
+      - name: 比较并更新文件
+        id: update-check
+        run: |
+          # 比较新旧文件差异
+          if cmp -s ./ITV.M3U ./temp.m3u; then
+            echo "文件内容未变化"
+            rm ./temp.m3u
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "检测到文件变化"
+            mv -f ./temp.m3u ./itv.m3u
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 提交更新
+        if: steps.update-check.outputs.has_changes == 'true'
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add ITV.M3U
+          git commit -m "🔄 自动同步ITV播放列表 [$(date +'%Y-%m-%d %H:%M UTC')]"
+          git push
