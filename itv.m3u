@@ -3,10 +3,10 @@
         {
             "name": "itv",
             "type": 0,
-            "url": "./itv.txt",
+            "url": "https://github.moeyy.xyz/https://raw.githubusercontent.com/sln654360/itv/refs/heads/main/itv.txt",
             "ua": "okhttp/3.15",
-            "epg": "https://epg.v1.mk/json?ch={name}&date={date}",
-            "logo": "https://epg.v1.mk/logo/{name}.png",
+            "epg": "https://iptv.crestekk.cn/epgphp/?ch={name}&date={date}",
+            "logo": "https://live.fanmingming.cn/tv/{name}.png",
             "catchup": {
                 "type": "append",
                 "source": "?livemode=4&starttime=${(b)yyyyMMdd'T'HHmm}00.00Z&endtime=${(e)yyyyMMdd'T'HHmm}00.00Z"
@@ -22,7 +22,7 @@
         }
     ],
     "proxy": [
-        "raw.bgithub.xyz"
+        "raw.githubusercontent.com"
     ],
     "hosts": [
         "cache.ott.ystenlive.itv.cmvideo.cn=39.135.132.221",
