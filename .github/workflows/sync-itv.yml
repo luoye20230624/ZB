@@ -12,32 +12,59 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0  # 获取完整提交历史
+          fetch-depth: 0
 
-      - name: 下载最新播放列表
+      - name: 下载播放列表
+        id: download
         run: |
-          # 下载到临时文件避免空文件覆盖
-          curl -s -o temp.m3u https://raw.bgithub.xyz/sln654360/itv/refs/heads/main/itv.m3u
+          # 添加重试机制和错误处理
+          if ! curl -s -f -o temp.m3u https://raw.bgithub.xyz/sln654360/itv/refs/heads/main/itv.m3u; then
+            echo "::error:: 无法下载播放列表"
+            exit 1
+          fi
+          echo "文件大小: $(wc -c < temp.m3u) 字节"
 
-      - name: 比较并更新文件
-        id: update-check
+      - name: 校验并更新
+        id: update
         run: |
-          # 比较新旧文件差异
-          if cmp -s ./itv.m3u ./temp.m3u; then
-            echo "文件内容未变化"
-            rm ./temp.m3u
+          # 处理首次运行无文件情况
+          if [ ! -f itv.m3u ]; then
+            echo "检测到首次运行，创建新文件"
+            mv -v temp.m3u itv.m3u
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # 比较文件差异
+          if cmp -s itv.m3u temp.m3u; then
+            echo "文件内容相同"
+            rm temp.m3u
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
-            echo "检测到文件变化"
-            mv -f ./temp.m3u ./itv.m3u
+            echo "检测到内容变化"
+            mv -f temp.m3u itv.m3u
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: 提交更新
-        if: steps.update-check.outputs.has_changes == 'true'
+      - name: 调试信息
+        if: always()
+        run: |
+          echo "当前目录文件列表:"
+          ls -lh
+          echo "itv.m3u 是否存在: [$(test -f itv.m3u && echo '是' || echo '否')]"
+
+      - name: 提交更改
+        if: steps.update.outputs.has_changes == 'true'
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           git add itv.m3u
-          git commit -m "🔄 自动同步ITV播放列表 [$(date +'%Y-%m-%d %H:%M UTC')]"
+          
+          # 添加提交前校验
+          if [ ! -f itv.m3u ]; then
+            echo "::error:: 目标文件不存在，无法提交"
+            exit 1
+          fi
+          
+          git commit -m "🔄 自动同步播放列表 [$(date +'%Y-%m-%d %H:%M UTC')]" 
           git push
