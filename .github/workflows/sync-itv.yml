@@ -20,7 +20,7 @@ jobs:
         id: download
         run: |
           # 添加重试机制和错误处理
-          if ! curl -s -f -o temp.m3u https://raw.bgithub.xyz/sln654360/itv/refs/heads/main/itv.m3u; then
+          if ! curl -s -f -o temp.m3u https://raw.githubusercontent.com/sln654360/itv/refs/heads/main/itv.m3u; then
             echo "::error:: 无法下载播放列表"
             exit 1
           fi
