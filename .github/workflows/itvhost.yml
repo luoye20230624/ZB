@@ -1,0 +1,78 @@
+name: iptvhost
+
+on:
+  schedule:
+    - cron: '0 */12 * * *'  # 每12小时运行一次（UTC时间）
+  workflow_dispatch:
+    分支:
+      - main
+jobs:
+  update_hosts:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Set DNS
+      run: |
+        echo "nameserver 223.5.5.5" | sudo tee /etc/resolv.conf > /dev/null
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Update DNS records and hosts file
+      run: |
+        set -x  # 启用调试模式
+        # 定义 DNS 名称和对应的 host 文件内容
+        DNS_NAMES=(
+          'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
+          'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
+          'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
+          'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
+          'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
+        )
+
+        HOSTS_MAPPING=(
+          'cache.ott.ystenlive.itv.cmvideo.cn'
+          'cache.ott.bestlive.itv.cmvideo.cn'
+          'cache.ott.wasulive.itv.cmvideo.cn'
+          'cache.ott.fifalive.itv.cmvideo.cn'
+          'cache.ott.hnbblive.itv.cmvideo.cn'
+        )
+
+        # 清空之前的 iptvhost 文件
+        echo "Clearing previous iptvhost file..."
+        > iptvhost
+
+        # 解析 DNS 记录并更新 hosts 文件
+        for i in "${!DNS_NAMES[@]}"; do
+          dns_name="${DNS_NAMES[$i]}"
+          host="${HOSTS_MAPPING[$i]}"
+
+          echo "Resolving DNS name: $dns_name"
+
+          # 只获取第一个非CNAME的IPv4地址
+          ip_address=$(dig +short "$dns_name" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+          
+          echo "Resolved IP address: $ip_address"
+
+          # 检查是否得到了 IP 地址
+          if [ -n "$ip_address" ]; then
+            echo "$ip_address $host" >> iptvhost
+            echo "Updated iptvhost file with: $ip_address $host"
+          else
+            echo "Failed to resolve $dns_name"
+          fi
+        done
+
+    - name: Stage changes  # 步骤：暂存更改
+      run: |
+        echo "Staging changes..."
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+        git add iptvhost
+        git status
+        cat iptvhost  # 输出 iptvhost 文件内容以检查更新
+
+    - name: Commit changes  # 步骤：提交更改
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: Update iptvhost
+        branch: main
