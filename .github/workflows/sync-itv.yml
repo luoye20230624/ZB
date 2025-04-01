@@ -23,7 +23,7 @@ jobs:
         id: update-check
         run: |
           # 比较新旧文件差异
-          if cmp -s ./ITV.M3U ./temp.m3u; then
+          if cmp -s ./itv.m3u ./temp.m3u; then
             echo "文件内容未变化"
             rm ./temp.m3u
             echo "has_changes=false" >> $GITHUB_OUTPUT
@@ -38,6 +38,6 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-          git add ITV.M3U
+          git add itv.m3u
           git commit -m "🔄 自动同步ITV播放列表 [$(date +'%Y-%m-%d %H:%M UTC')]"
           git push
