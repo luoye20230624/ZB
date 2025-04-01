@@ -3,7 +3,9 @@ name: Sync ITV Playlist
 on:
   schedule:
     - cron: '0 */12 * * *'  # 每12小时运行一次（UTC时间）
-
+  workflow_dispatch:
+    分支:
+      - main
 jobs:
   sync:
     runs-on: ubuntu-latest
