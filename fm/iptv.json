@@ -3,19 +3,19 @@
     {
       "name": "IPTV345(python)",
       "type": 3,
-      "api": "./fm/iptv345.py",
+      "api": "./iptv345.py",
       "ext": {}
     },
     {
       "name": "快直播体育(python)",
       "type": 3,
-      "api": "./fm/kzbty.py",
+      "api": "./kzbty.py",
       "ext": {}
     },
     {
       "name": "快直播电视(python)",
       "type": 3,
-      "api": "./fm/kzb.py",
+      "api": "./kzb.py",
       "ext": {}
     }
   ]
