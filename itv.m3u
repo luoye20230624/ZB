@@ -1,9 +1,32 @@
 {
     "lives": [
         {
+            "name": "fmm-ipv6",
+            "type": 0,
+            "url": "https://live.fanmingming.cn/tv/m3u/ipv6.m3u",
+            "ua": "okhttp/3.15",
+            "epg": "https://iptv.crestekk.cn/epgphp/?ch={name}&date={date}"
+        },
+        {
+            "name": "iptv-多线路1",
+            "type": 0,
+            "url": "https://gcore.jsdelivr.net/gh/Guovin/iptv-api@gd/output/result.m3u",
+            "ua": "okhttp/3.15",
+            "epg": "https://iptv.crestekk.cn/epgphp/?ch={name}&date={date}",
+            "logo": "https://live.fanmingming.cn/tv/{name}.png"
+        },
+        {
+            "name": "iptv-多线路2",
+            "type": 0,
+            "url": "https://gcore.jsdelivr.net/gh/suxuang/myIPTV/ipv6.m3u",
+            "ua": "okhttp/3.15",
+            "epg": "https://iptv.crestekk.cn/epgphp/?ch={name}&date={date}",
+            "logo": "https://live.fanmingming.cn/tv/{name}.png"
+        },
+        {
             "name": "itv",
             "type": 0,
-            "url": "https://std.850058.xyz/itv.txt",
+            "url": "https://gcore.jsdelivr.net/gh/sln654360/itv/itv.txt",
             "ua": "okhttp/3.15",
             "epg": "https://iptv.crestekk.cn/epgphp/?ch={name}&date={date}",
             "logo": "https://live.fanmingming.cn/tv/{name}.png",
@@ -23,14 +46,14 @@
         }
     ],
     "proxy": [
-        "raw.bgithub.xyz"
+        "raw.githubusercontent.com"
     ],
     "hosts": [
-        "cache.ott.ystenlive.itv.cmvideo.cn=39.136.124.74",
-        "cache.ott.bestlive.itv.cmvideo.cn=39.136.125.198",
-        "cache.ott.wasulive.itv.cmvideo.cn=39.136.124.70",
-        "cache.ott.fifalive.itv.cmvideo.cn=39.136.125.201",
-        "cache.ott.hnbblive.itv.cmvideo.cn=39.136.124.73"
+        "cache.ott.ystenlive.itv.cmvideo.cn=39.135.132.221",
+        "cache.ott.bestlive.itv.cmvideo.cn=39.135.132.221",
+        "cache.ott.wasulive.itv.cmvideo.cn=39.135.132.221",
+        "cache.ott.fifalive.itv.cmvideo.cn=39.135.132.221",
+        "cache.ott.hnbblive.itv.cmvideo.cn=39.135.132.221"
     ],
     "ads": [
         "static-mozai.4gtv.tv"
