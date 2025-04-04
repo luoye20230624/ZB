@@ -3,7 +3,7 @@
         {
             "name": "itv",
             "type": 0,
-            "url": "https://github.moeyy.xyz/https://raw.githubusercontent.com/sln654360/itv/refs/heads/main/itv.txt",
+            "url": "https://github.moeyy.xyz/https://raw.bgithub.xyz/sln654360/itv/refs/heads/main/itv.txt",
             "ua": "okhttp/3.15",
             "epg": "https://iptv.crestekk.cn/epgphp/?ch={name}&date={date}",
             "logo": "https://live.fanmingming.cn/tv/{name}.png",
@@ -23,14 +23,14 @@
         }
     ],
     "proxy": [
-        "raw.githubusercontent.com"
+        "raw.bgithub.xyz"
     ],
     "hosts": [
-        "cache.ott.ystenlive.itv.cmvideo.cn=39.135.132.221",
-        "cache.ott.bestlive.itv.cmvideo.cn=39.135.132.221",
-        "cache.ott.wasulive.itv.cmvideo.cn=39.135.132.221",
-        "cache.ott.fifalive.itv.cmvideo.cn=39.135.132.221",
-        "cache.ott.hnbblive.itv.cmvideo.cn=39.135.132.221"
+        "cache.ott.ystenlive.itv.cmvideo.cn=39.136.124.74",
+        "cache.ott.bestlive.itv.cmvideo.cn=39.136.125.198",
+        "cache.ott.wasulive.itv.cmvideo.cn=39.136.124.70",
+        "cache.ott.fifalive.itv.cmvideo.cn=39.136.125.201",
+        "cache.ott.hnbblive.itv.cmvideo.cn=39.136.124.73"
     ],
     "ads": [
         "static-mozai.4gtv.tv"
