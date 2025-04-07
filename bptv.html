@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>肥羊BPTV生成器</title>
+    <style>
+        .advanced-options { margin-top: 10px; }
+        .advanced-content { display: none; margin-left: 20px; }
+        .button-group { 
+            margin-top: 10px; 
+            display: flex; 
+            gap: 10px;
+        }
+        #fullUrlInput { 
+            width: 250px; 
+        }
+        .protocol-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+    </style>
+</head>
+<body>
+    <p>请输入部署设备的 IP 地址，会自动更改 M3U 内容：</p>
+    <input type="text" id="ipInput" placeholder="例如: 192.168.1.2">
+    
+    <div class="advanced-options">
+        <button onclick="toggleAdvanced()">高级选项</button>
+        <div id="advancedContent" class="advanced-content">
+            <p>
+                <label>自定义完整URL（选择协议并输入域名，端口可选）：</label><br>
+                <div class="protocol-group">
+                    <select id="protocolSelect">
+                        <option value="http://">http://</option>
+                        <option value="https://">https://</option>
+                    </select>
+                    <input type="text" id="fullUrlInput" placeholder="例如: example.com:35455">
+                </div>
+            </p>
+            <p>
+                <label><input type="checkbox" id="proxyCheckbox"> 启用反代</label>
+            </p>
+        </div>
+    </div>
+
+    <p>配置ip后，可复制和下载，一般用户直接生成订阅链接即可！</p>
+    <div class="button-group">
+        <button onclick="copyToClipboard()">复制以下内容</button>
+        <a id="downloadLink" style="display: none;" download="playlist.m3u">
+            <button>下载 M3U 文件</button>
+        </a>
+        <button onclick="copyPlayLink()">生成订阅链接</button>
+    </div>
+    <pre id="result">生成中，请稍候...</pre>
+
+    <script>
+        const m3uUrl = 'https://gcore.jsdelivr.net/gh/sln654360/bptv/fy192.168.1.2.m3u';
+        let originalM3uData = '';
+        const timestamp = new Date().getTime();
+        const noCacheUrl = `${m3uUrl}?t=${timestamp}`;
+
+        fetch(noCacheUrl, { cache: 'no-cache' })
+            .then(response => {
+                if (!response.ok) throw new Error('无法加载 M3U 文件');
+                return response.text();
+            })
+            .then(data => {
+                originalM3uData = data;
+                updateResultAndDownload();
+            })
+            .catch(err => {
+                console.error('加载失败: ', err);
+                document.getElementById('result').textContent = '加载 M3U 文件失败，请检查 URL 或网络连接。';
+            });
+
+        function needsUrlEncoding(str) {
+            if (/%[0-9A-Fa-f]{2}/.test(str)) return false;
+            const specialChars = /[&=?#\s]|[^\x00-\x7F]/;
+            return specialChars.test(str);
+        }
+
+        function getFullUrl() {
+            const protocol = document.getElementById('protocolSelect').value;
+            const domain = document.getElementById('fullUrlInput').value.trim();
+            return domain ? `${protocol}${domain}` : '';
+        }
+
+        function processM3u(data) {
+            const ip = document.getElementById('ipInput').value.trim() || '192.168.1.2';
+            const fullUrl = getFullUrl();
+            const proxyEnabled = document.getElementById('proxyCheckbox').checked;
+        
+            let result = data;
+            if (fullUrl) {
+                result = result.replace(/http:\/\/192\.168\.1\.2:35455/g, fullUrl);
+            } else {
+                result = result.replace(/192\.168\.1\.2/g, ip);
+            }
+        
+            if (proxyEnabled && fullUrl) {
+                const urlParam = needsUrlEncoding(fullUrl) ? encodeURIComponent(fullUrl) : fullUrl;
+                const lines = result.split('\n');
+                result = lines.map(line => {
+                    if (line.startsWith('http')) {
+                        return `${line}?url=${urlParam}`;
+                    }
+                    return line;
+                }).join('\n');
+            }
+        
+            return result;
+        }
+
+        function updateResultAndDownload() {
+            const result = processM3u(originalM3uData);
+            document.getElementById('result').textContent = result;
+            document.querySelector('pre').setAttribute('style', 'white-space: pre-wrap;');
+
+            const blob = new Blob([result], { type: 'audio/x-mpegurl' });
+            const url = URL.createObjectURL(blob);
+            const downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = url;
+            downloadLink.style.display = 'inline';
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('result').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('已复制到剪贴板！');
+            }).catch(err => {
+                console.error('复制失败: ', err);
+            });
+        }
+
+        function copyPlayLink() {
+            const ipInput = document.getElementById('ipInput').value.trim();
+            const fullUrl = getFullUrl();
+            const proxyEnabled = document.getElementById('proxyCheckbox').checked;
+        
+            let playLink;
+            if (fullUrl) {
+                const urlParam = needsUrlEncoding(fullUrl) ? encodeURIComponent(fullUrl) : fullUrl;
+                playLink = `https://fy.iptv1.ggff.net/?url=${urlParam}`;
+                if (proxyEnabled) playLink += `&proxy=true`;
+            } else {
+                playLink = `https://fy.iptv1.ggff.net/?ip=${ipInput || '192.168.1.2'}`;
+            }
+        
+            navigator.clipboard.writeText(playLink).then(() => {
+                alert('订阅链接已复制到剪贴板！请粘贴到播放器中使用！');
+            }).catch(err => {
+                console.error('复制失败: ', err);
+            });
+        }
+
+        function toggleAdvanced() {
+            const content = document.getElementById('advancedContent');
+            content.style.display = content.style.display === 'block' ? 'none' : 'block';
+        }
+
+        document.getElementById('ipInput').addEventListener('input', updateResultAndDownload);
+        document.getElementById('fullUrlInput').addEventListener('input', updateResultAndDownload);
+        document.getElementById('proxyCheckbox').addEventListener('change', updateResultAndDownload);
+        document.getElementById('protocolSelect').addEventListener('change', updateResultAndDownload);
+    </script>
+</body>
+</html>
