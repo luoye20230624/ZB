@@ -141,10 +141,10 @@
             let playLink;
             if (fullUrl) {
                 const urlParam = needsUrlEncoding(fullUrl) ? encodeURIComponent(fullUrl) : fullUrl;
-                playLink = `https://std.850058.xyz/bptv.html?url=${urlParam}`;
+                playLink = `https://fy.iptv1.ggff.net/?url=${urlParam}`;
                 if (proxyEnabled) playLink += `&proxy=true`;
             } else {
-                playLink = `https://std.850058.xyz/bptv.html?ip=${ipInput || '192.168.1.2'}`;
+                playLink = `https://fy.iptv1.ggff.net/?ip=${ipInput || '192.168.1.2'}`;
             }
         
             navigator.clipboard.writeText(playLink).then(() => {
