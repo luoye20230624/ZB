@@ -2,7 +2,7 @@
     "lives": [    
         
         {
-            "name": "itv",
+            "name": "itv（卡顿请按左┃右键换线）",
             "type": 0,
             "url": "https://gcore.jsdelivr.net/gh/sln654360/itv/itv.txt",
             "ua": "okhttp/3.15",
@@ -19,14 +19,14 @@
             "ua": "okhttp/3.15"
         },
         {
-            "name": "iptv-多线路1",
+            "name": "每日扫源1（卡顿请按左┃右键换线）",
             "type": 0,
             "url": "https://gcore.jsdelivr.net/gh/Guovin/iptv-api@gd/output/result.m3u",
             "ua": "okhttp/3.15",
             "logo": "https://live.fanmingming.cn/tv/{name}.png"
         },
         {
-            "name": "iptv-多线路2",
+            "name": "每日扫源2（卡顿请按左┃右键换线）",
             "type": 0,
             "url": "https://gcore.jsdelivr.net/gh/suxuang/myIPTV/ipv6.m3u",
             "ua": "okhttp/3.15",
