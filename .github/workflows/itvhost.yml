@@ -9,18 +9,23 @@ on:
 jobs:
   update_hosts:
     runs-on: ubuntu-latest
-
+ 
     steps:
     - name: Set DNS
       run: |
         echo "nameserver 223.5.5.5" | sudo tee /etc/resolv.conf > /dev/null
+         
     - name: Checkout repository
       uses: actions/checkout@v3
-
+ 
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'  # 指定Python版本
+ 
     - name: Update DNS records and hosts file
       run: |
-        set -x  # 启用调试模式
-        # 定义 DNS 名称和对应的 host 文件内容
+        set -x
         DNS_NAMES=(
           'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
           'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
@@ -28,7 +33,7 @@ jobs:
           'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
           'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
         )
-
+ 
         HOSTS_MAPPING=(
           'cache.ott.ystenlive.itv.cmvideo.cn'
           'cache.ott.bestlive.itv.cmvideo.cn'
@@ -36,43 +41,52 @@ jobs:
           'cache.ott.fifalive.itv.cmvideo.cn'
           'cache.ott.hnbblive.itv.cmvideo.cn'
         )
-
-        # 清空之前的 iptvhost 文件
-        echo "Clearing previous iptvhost file..."
-        > iptvhost
-
-        # 解析 DNS 记录并更新 hosts 文件
+ 
+        > iptvhost.txt  # 确保文件名统一为iptvhost.txt
+ 
         for i in "${!DNS_NAMES[@]}"; do
           dns_name="${DNS_NAMES[$i]}"
           host="${HOSTS_MAPPING[$i]}"
-
-          echo "Resolving DNS name: $dns_name"
-
-          # 只获取第一个非CNAME的IPv4地址
           ip_address=$(dig +short "$dns_name" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
           
-          echo "Resolved IP address: $ip_address"
-
-          # 检查是否得到了 IP 地址
           if [ -n "$ip_address" ]; then
-            echo "$ip_address $host" >> iptvhost
-            echo "Updated iptvhost file with: $ip_address $host"
-          else
-            echo "Failed to resolve $dns_name"
+            echo "$ip_address $host" >> iptvhost.txt
           fi
         done
-
-    - name: Stage changes  # 步骤：暂存更改
+ 
+    # 新增步骤：更新itv.m3u的hosts部分
+    - name: Update M3U hosts configuration
       run: |
-        echo "Staging changes..."
+        python -c '
+ import json
+ 
+# 处理iptvhost.txt
+hosts = []
+with open("iptvhost.txt") as f:
+    for line in f:
+        line = line.strip()
+        if line:
+            ip, domain = line.split(" ", 1)
+            hosts.append(f"{domain}={ip}")
+ 
+# 更新m3u文件
+with open("itv.m3u", "r+", encoding="utf-8") as f:
+    data = json.load(f)
+    data["hosts"] = hosts
+    f.seek(0)
+    json.dump(data, f, indent=4, ensure_ascii=False)
+    f.truncate()
+        '
+ 
+    - name: Stage changes
+      run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git add iptvhost
+        git add iptvhost.txt itv.m3u  # 同时提交两个文件的修改
         git status
-        cat iptvhost  # 输出 iptvhost 文件内容以检查更新
-
-    - name: Commit changes  # 步骤：提交更改
+ 
+    - name: Commit changes
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        commit_message: Update iptvhost
+        commit_message: "Update iptvhost and m3u configuration"
         branch: main
