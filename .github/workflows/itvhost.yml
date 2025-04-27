@@ -1,37 +1,36 @@
 name: iptvhost
 
 on:
-  # 定时触发（每12小时）
   schedule:
-    - cron: '0 */12 * * *'
-  # 手动触发配置（新增这个部分）
-  workflow_dispatch:
-    inputs:
-      description:
-        description: '手动触发说明（可选）'
-        required: false
-        default: '手动更新请求'
- 
+    - cron: '0 */12 * * *'  # 每12小时自动运行（UTC时间）
+  workflow_dispatch:         # 启用手动触发
+
 jobs:
   update_hosts:
     runs-on: ubuntu-latest
- 
+
     steps:
+    # 步骤1: 设置DNS服务器
     - name: Set DNS
       run: |
         echo "nameserver 223.5.5.5" | sudo tee /etc/resolv.conf > /dev/null
-         
+
+    # 步骤2: 检出代码仓库
     - name: Checkout repository
       uses: actions/checkout@v3
- 
+
+    # 步骤3: 配置Python环境
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10'  # 指定Python版本
- 
-    - name: Update DNS records and hosts file
+        python-version: '3.10'
+
+    # 步骤4: 生成iptvhost.txt
+    - name: Update DNS records
       run: |
-        set -x
+        set -ex  # 启用详细日志和错误退出
+        
+        # DNS与域名映射配置
         DNS_NAMES=(
           'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
           'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
@@ -39,7 +38,7 @@ jobs:
           'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
           'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
         )
- 
+
         HOSTS_MAPPING=(
           'cache.ott.ystenlive.itv.cmvideo.cn'
           'cache.ott.bestlive.itv.cmvideo.cn'
@@ -47,34 +46,44 @@ jobs:
           'cache.ott.fifalive.itv.cmvideo.cn'
           'cache.ott.hnbblive.itv.cmvideo.cn'
         )
- 
-        > iptvhost.txt  # 确保文件名统一为iptvhost.txt
- 
+
+        # 清空旧文件
+        > iptvhost.txt
+
+        # 解析DNS记录
         for i in "${!DNS_NAMES[@]}"; do
           dns_name="${DNS_NAMES[$i]}"
           host="${HOSTS_MAPPING[$i]}"
-          ip_address=$(dig +short "$dns_name" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+          
+          echo "正在解析: $dns_name"
+          ip_address=$(dig +short "$dns_name" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -n1)
           
           if [ -n "$ip_address" ]; then
             echo "$ip_address $host" >> iptvhost.txt
+            echo "已更新: $ip_address -> $host"
+          else
+            echo "解析失败: $dns_name"
           fi
         done
- 
-    # 新增步骤：更新itv.m3u的hosts部分
-    - name: Update M3U hosts configuration
+
+    # 步骤5: 更新itv.m3u的hosts配置
+    - name: Update M3U configuration
       run: |
         python -c '
- import json
- 
-# 处理iptvhost.txt
+import json
+
+# 读取生成的host文件
 hosts = []
 with open("iptvhost.txt") as f:
     for line in f:
         line = line.strip()
         if line:
-            ip, domain = line.split(" ", 1)
-            hosts.append(f"{domain}={ip}")
- 
+            try:
+                ip, domain = line.split(" ", 1)
+                hosts.append(f"{domain}={ip}")
+            except ValueError as e:
+                print(f"格式错误跳过: {line}")
+
 # 更新m3u文件
 with open("itv.m3u", "r+", encoding="utf-8") as f:
     data = json.load(f)
@@ -83,16 +92,13 @@ with open("itv.m3u", "r+", encoding="utf-8") as f:
     json.dump(data, f, indent=4, ensure_ascii=False)
     f.truncate()
         '
- 
-    - name: Stage changes
-      run: |
-        git config --global user.email "action@github.com"
-        git config --global user.name "GitHub Action"
-        git add iptvhost.txt itv.m3u  # 同时提交两个文件的修改
-        git status
- 
+
+    # 步骤6: 提交变更
     - name: Commit changes
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        commit_message: "Update iptvhost and m3u configuration"
+        commit_message: "自动更新DNS映射配置"
         branch: main
+        file_pattern: |
+          iptvhost.txt
+          itv.m3u
