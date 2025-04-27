@@ -42,14 +42,14 @@
         }
     ],
     "proxy": [
-        "raw.githubusercontent.com"
+        "raw.bgithub.xyz"
     ],
     "hosts": [
-        "cache.ott.ystenlive.itv.cmvideo.cn=39.135.132.221",
-        "cache.ott.bestlive.itv.cmvideo.cn=39.135.132.221",
-        "cache.ott.wasulive.itv.cmvideo.cn=39.135.132.221",
-        "cache.ott.fifalive.itv.cmvideo.cn=39.135.132.221",
-        "cache.ott.hnbblive.itv.cmvideo.cn=39.135.132.221"
+        "cache.ott.ystenlive.itv.cmvideo.cn=39.136.125.198",
+        "cache.ott.bestlive.itv.cmvideo.cn=39.136.124.70",
+        "cache.ott.wasulive.itv.cmvideo.cn=39.136.124.70",
+        "cache.ott.fifalive.itv.cmvideo.cn=39.136.125.201",
+        "cache.ott.hnbblive.itv.cmvideo.cn=39.136.125.198"
     ],
     "ads": [
         "static-mozai.4gtv.tv"
