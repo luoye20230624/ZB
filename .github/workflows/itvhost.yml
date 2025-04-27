@@ -1,11 +1,17 @@
 name: iptvhost
 
 on:
+  # 定时触发（每12小时）
   schedule:
-    - cron: '0 */12 * * *'  # 每12小时运行一次（UTC时间）
+    - cron: '0 */12 * * *'
+  # 手动触发配置（新增这个部分）
   workflow_dispatch:
-    分支:
-      - main
+    inputs:
+      description:
+        description: '手动触发说明（可选）'
+        required: false
+        default: '手动更新请求'
+ 
 jobs:
   update_hosts:
     runs-on: ubuntu-latest
