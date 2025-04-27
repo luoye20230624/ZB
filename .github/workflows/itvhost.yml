@@ -53,7 +53,7 @@ jobs:
           fi
         done
 
-    # 修正后的Python代码块
+    # 关键修正点：Python代码块缩进
     - name: Update M3U configuration
       run: |
         python -c '
