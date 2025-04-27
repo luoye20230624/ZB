@@ -2,35 +2,29 @@ name: iptvhost
 
 on:
   schedule:
-    - cron: '0 */12 * * *'  # 每12小时自动运行（UTC时间）
-  workflow_dispatch:         # 启用手动触发
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
 
 jobs:
   update_hosts:
     runs-on: ubuntu-latest
 
     steps:
-    # 步骤1: 设置DNS服务器
     - name: Set DNS
       run: |
         echo "nameserver 223.5.5.5" | sudo tee /etc/resolv.conf > /dev/null
 
-    # 步骤2: 检出代码仓库
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # 步骤3: 配置Python环境
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
 
-    # 步骤4: 生成iptvhost.txt
     - name: Update DNS records
       run: |
-        set -ex  # 启用详细日志和错误退出
-        
-        # DNS与域名映射配置
+        set -ex
         DNS_NAMES=(
           'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
           'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
@@ -38,7 +32,6 @@ jobs:
           'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
           'base-v4v6-cm-miguvideo.e.cdn.chinamobile.com'
         )
-
         HOSTS_MAPPING=(
           'cache.ott.ystenlive.itv.cmvideo.cn'
           'cache.ott.bestlive.itv.cmvideo.cn'
@@ -46,18 +39,12 @@ jobs:
           'cache.ott.fifalive.itv.cmvideo.cn'
           'cache.ott.hnbblive.itv.cmvideo.cn'
         )
-
-        # 清空旧文件
         > iptvhost.txt
-
-        # 解析DNS记录
         for i in "${!DNS_NAMES[@]}"; do
           dns_name="${DNS_NAMES[$i]}"
           host="${HOSTS_MAPPING[$i]}"
-          
           echo "正在解析: $dns_name"
           ip_address=$(dig +short "$dns_name" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -n1)
-          
           if [ -n "$ip_address" ]; then
             echo "$ip_address $host" >> iptvhost.txt
             echo "已更新: $ip_address -> $host"
@@ -66,7 +53,6 @@ jobs:
           fi
         done
 
-    # 步骤5: 更新itv.m3u的hosts配置
     - name: Update M3U configuration
       run: |
         python -c '
@@ -93,7 +79,6 @@ with open("itv.m3u", "r+", encoding="utf-8") as f:
     f.truncate()
         '
 
-    # 步骤6: 提交变更
     - name: Commit changes
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
