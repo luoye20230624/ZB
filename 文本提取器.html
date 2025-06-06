@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>文本提取器</title>
+    <style>
+    textarea {
+        width: 100%;
+    }
+    #output {
+        height: 200px;
+    }
+    body {
+        text-align: center;
+    }
+    </style>
+</head>
+<body>
+    <h1>文本提取器</h1>
+    <form>
+      <label for="text">待提取文本:</label><br>
+      <textarea id="text" rows="20" cols="50"></textarea><br>
+      <label for="keyword">关键字:</label><br>
+      <input type="text" id="keyword" name="keyword"><br><br>
+      <input type="button" value="提取" onclick="extract()">
+    </form>
+    <label for="output">输出:</label><br>
+    <textarea id="output" rows="20" cols="50" readonly></textarea>
+    <button onclick="copyResult()">复制结果</button>
+    <script>
+      function extract() {
+        var text = document.getElementById('text').value.split('\n');
+        var keyword = document.getElementById('keyword').value;
+        var result = '';
+
+        // Traverse each line to find keyword
+        for(var i=0; i<text.length; i++) {
+          if (text[i].includes(keyword)) {
+            result += text[i] + '\n';
+          }
+        }
+
+        // Update output box's value
+        document.getElementById('output').value = result;
+      }
+
+      function copyResult() {
+        var output = document.getElementById('output');
+        output.select();
+        document.execCommand('copy');
+      }
+    </script>
+</body>
+</html>
