@@ -1,0 +1,987 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisionX Player | 高清视频播放器</title>
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ff3e9d;
+            --secondary: #4a00e0;
+            --accent: #00c9ff;
+            --dark: #121826;
+            --light: #f8f9ff;
+            --card-bg: rgba(30, 30, 50, 0.85);
+            --glass: rgba(255, 255, 255, 0.08);
+            --success: #00e676;
+            --warning: #ff9800;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        
+        body, html {
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, var(--dark), #1a1c2f);
+            color: var(--light);
+        }
+        
+        #app-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0c0e1d, #1a1c2f);
+        }
+        
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 22px;
+            letter-spacing: 1px;
+        }
+        
+        .logo-icon {
+            font-size: 28px;
+            color: var(--accent);
+        }
+        
+        .app-controls {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .control-btn {
+            background: var(--glass);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 18px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        #player-wrapper {
+            position: relative;
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        #drop-zone {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 85%;
+            height: 75%;
+            border: 3px dashed var(--glass);
+            border-radius: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            padding: 30px;
+            background: rgba(20, 20, 40, 0.3);
+            backdrop-filter: blur(10px);
+            transition: all 0.4s ease;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        #drop-zone:hover {
+            border-color: var(--accent);
+            background: rgba(30, 30, 50, 0.4);
+        }
+        
+        #drop-zone.drag-over {
+            border-color: var(--success);
+            background: rgba(0, 230, 118, 0.1);
+            transform: scale(0.98);
+        }
+        
+        .upload-icon {
+            font-size: 80px;
+            margin-bottom: 25px;
+            color: var(--accent);
+            text-shadow: 0 0 15px rgba(0, 201, 255, 0.5);
+        }
+        
+        .drop-text h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .drop-text p {
+            font-size: 18px;
+            max-width: 600px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        
+        .format-hint {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .format-tag {
+            background: linear-gradient(90deg, var(--secondary), #6a11cb);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        #video-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        .video-js {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- 新增：视频元素变换过渡 --- */
+        .video-js .vjs-tech {
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        #advanced-controls {
+            position: absolute;
+            bottom: 80px;
+            right: 30px;
+            z-index: 1000;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            padding: 20px;
+            border-radius: 16px;
+            color: white;
+            width: 380px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+            transform: translateX(120%);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-height: calc(100vh - 180px); /* 限制最大高度 */
+            overflow-y: auto; /* 内容过多时滚动 */
+        }
+        
+        #advanced-controls.visible {
+            transform: translateX(0);
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .panel-header h3 {
+            font-size: 20px;
+            font-weight: 600;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .close-panel {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 22px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .close-panel:hover {
+            color: var(--accent);
+            transform: rotate(90deg);
+        }
+        
+        .control-section {
+            margin-bottom: 25px;
+        }
+        .control-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .control-section h4 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent);
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .slider-container label {
+            min-width: 80px;
+            font-size: 14px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 201, 255, 0.7);
+        }
+        
+        .value-display {
+            min-width: 45px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-grow: 1;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--glass);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .preset-grid .btn {
+            padding: 10px 5px;
+        }
+        
+        .btn.active-preset {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(0, 201, 255, 0.5);
+            color: var(--accent);
+        }
+
+        /* --- 新增：倍速按钮高亮样式 --- */
+        .btn.active-speed-btn {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 0 15px rgba(255, 62, 157, 0.5);
+        }
+
+        
+        .audio-track {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .audio-track:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .audio-track.active {
+            background: linear-gradient(90deg, rgba(74, 0, 224, 0.3), rgba(0, 201, 255, 0.3));
+            border-left: 3px solid var(--accent);
+        }
+        
+        .track-icon {
+            margin-right: 12px;
+            font-size: 18px;
+            color: var(--accent);
+        }
+        
+        .track-info {
+            flex: 1;
+        }
+        
+        .track-info h5 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 3px;
+        }
+        
+        .track-info p {
+            font-size: 13px;
+            opacity: 0.7;
+        }
+        
+        .status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transform: translateX(200%);
+            transition: transform 0.4s ease;
+            z-index: 2000;
+            border-left: 4px solid var(--success);
+        }
+        
+        .status-message.warning {
+            border-left-color: var(--warning);
+        }
+        
+        .status-message.show {
+            transform: translateX(0);
+        }
+        
+        .message-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .message-icon {
+            font-size: 22px;
+        }
+        
+        .success-icon {
+            color: var(--success);
+        }
+        
+        .warning-icon {
+            color: var(--warning);
+        }
+        
+        @media (max-width: 768px) {
+            .app-header {
+                padding: 12px 15px;
+            }
+            
+            .logo {
+                font-size: 18px;
+            }
+            
+            .drop-text h1 {
+                font-size: 24px;
+            }
+            
+            .drop-text p {
+                font-size: 16px;
+            }
+            
+            #advanced-controls {
+                width: 90%;
+                left: 5%;
+                right: auto;
+                bottom: 20px;
+                max-height: calc(100vh - 120px);
+            }
+            
+            .format-hint {
+                gap: 8px;
+            }
+            
+            .format-tag {
+                padding: 6px 15px;
+                font-size: 12px;
+            }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .floating {
+            animation: float 4s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div class="status-message" id="status-message">
+            <div class="message-content">
+                <div class="message-icon success-icon">✓</div>
+                <div class="message-text">视频加载成功！</div>
+            </div>
+        </div>
+        
+        <div class="app-header">
+            <div class="logo">
+                <div class="logo-icon">▶</div>
+                <div>本地网页视频播放器_v1.2</div>
+            </div>
+            <div class="app-controls">
+                <button class="control-btn" title="设置" onclick="toggleSettings()">⚙️</button>
+            </div>
+        </div>
+        
+        <div id="player-wrapper">
+            <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+                <div class="upload-icon floating">⬆</div>
+                <div class="drop-text">
+                    <h1>拖放视频文件到此处</h1>
+                    <p>支持多种视频格式，享受极致高清播放体验</p>
+                </div>
+                <div class="format-hint">
+                    <div class="format-tag">MP4</div>
+                    <div class="format-tag">MKV</div>
+                    <div class="format-tag">AVI</div>
+                    <div class="format-tag">TS</div>
+                    <div class="format-tag">RMVB</div>
+                    <div class="format-tag">MOV</div>
+                    <div class="format-tag">WEBM</div>
+                </div>
+            </div>
+            <div id="video-container">
+                <video id="video-player" class="video-js vjs-tech"></video>
+            </div>
+        </div>
+        
+        <input type="file" id="file-input" accept="video/*" style="display: none" onchange="handleFileSelect(this.files)">
+        
+        <div id="advanced-controls" class="control-panel">
+            <div class="panel-header">
+                <h3>控制面板</h3>
+                <button class="close-panel" onclick="toggleSettings()">×</button>
+            </div>
+            
+            <!-- --- 新增：画面变换控制区 --- -->
+            <div class="control-section">
+                <h4><i>🖼️</i> 画面变换与速度</h4>
+                <div class="control-group">
+                    <div class="btn-group" style="margin-bottom: 15px;">
+                        <button class="btn btn-secondary" onclick="rotateVideo()">旋转 90°</button>
+                        <button class="btn btn-secondary" onclick="flipVideo('x')">水平镜像</button>
+                        <button class="btn btn-secondary" onclick="flipVideo('y')">垂直镜像</button>
+                    </div>
+                     <div class="slider-container">
+                        <label for="zoom">缩放</label>
+                        <input type="range" id="zoom" min="50" max="300" value="100" step="10" oninput="updateTransformValue(this)">
+                        <span class="value-display" id="zoom-value">100%</span>
+                    </div>
+                </div>
+                 <div class="control-group">
+                    <label style="font-size:14px;">播放速度</label>
+                    <div id="speed-controls" class="btn-group">
+                        <button class="btn btn-secondary" onclick="setPlaybackRate(0.5, this)">0.5x</button>
+                        <button class="btn btn-secondary" onclick="setPlaybackRate(1.0, this)">1.0x</button>
+                        <button class="btn btn-secondary" onclick="setPlaybackRate(1.5, this)">1.5x</button>
+                        <button class="btn btn-secondary" onclick="setPlaybackRate(2.0, this)">2.0x</button>
+                    </div>
+                </div>
+                <div class="btn-group" style="margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="resetTransforms()">
+                        <i>🔄</i> 重置变换
+                    </button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h4><i>🔊</i> 音轨选择</h4>
+                <div id="track-selection" class="audio-track-list">
+                    <div class="audio-track active" onclick="switchAudioTrack(0)">
+                        <div class="track-icon">🎵</div>
+                        <div class="track-info">
+                            <h5>主音轨</h5>
+                            <p>默认音频流</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h4><i>🎨</i> 视频调整</h4>
+                <div class="control-group">
+                    <div class="slider-container">
+                        <label for="brightness">亮度</label>
+                        <input type="range" id="brightness" min="0" max="200" value="100" oninput="updateFilterValue(this)">
+                        <span class="value-display" id="brightness-value">100</span>
+                    </div>
+                    <div class="slider-container">
+                        <label for="contrast">对比度</label>
+                        <input type="range" id="contrast" min="0" max="200" value="100" oninput="updateFilterValue(this)">
+                        <span class="value-display" id="contrast-value">100</span>
+                    </div>
+                    <div class="slider-container">
+                        <label for="saturate">饱和度</label>
+                        <input type="range" id="saturate" min="0" max="200" value="100" oninput="updateFilterValue(this)">
+                        <span class="value-display" id="saturate-value">100</span>
+                    </div>
+                    <div class="slider-container">
+                        <label for="sharpen">锐化</label>
+                        <input type="range" id="sharpen" min="0" max="4" step="1" value="0" oninput="updateFilterValue(this)">
+                        <span class="value-display" id="sharpen-value">0</span>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="resetFilters()">
+                        <i>🔄</i> 重置滤镜
+                    </button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h4><i>💮</i> 滤镜预设</h4>
+                <div class="preset-grid">
+                    <button class="btn btn-secondary" onclick="applyPreset('hdr_vivid', this)">生动</button>
+                    <button class="btn btn-secondary" onclick="applyPreset('hdr_cinema', this)">影院</button>
+                    <button class="btn btn-secondary" onclick="applyPreset('hdr_bright', this)">明亮</button>
+                    <button class="btn btn-secondary" onclick="applyPreset('hdr_soft', this)">柔和</button>
+                    <button class="btn btn-secondary" onclick="applyPreset('hdr_contrast', this)">高对比</button>
+                    <button class="btn btn-secondary" onclick="applyPreset('hdr_night', this)">夜间</button>
+                    <button class="btn btn-secondary" onclick="applyPreset('hdr_vivid_pro', this)">生动Pro</button>
+                    <button class="btn btn-secondary" onclick="applyPreset('hdr_ultra_clear', this)">超清</button>
+                    <button class="btn btn-secondary" onclick="applyPreset('hdr_color_boost', this)">色彩增强</button>
+                    <button class="btn btn-secondary" onclick="applyPreset('hdr_true_black', this)">纯黑</button>
+                    <button class="btn btn-secondary" onclick="applyPreset('hdr_high_motion', this)">高动态</button>
+                    <button class="btn btn-secondary" onclick="applyPreset('hdr_natural', this)">自然</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const videoContainer = document.getElementById('video-container');
+        const videoPlayerEl = document.getElementById('video-player');
+        const controlsPanel = document.getElementById('advanced-controls');
+        const statusMessage = document.getElementById('status-message');
+        const trackSelection = document.getElementById('track-selection');
+        let player = null;
+        let currentVideoURL = null;
+        
+        // 锐化滤镜配置
+        const sharpenFilters = [
+            { id: '', label: '无锐化', matrix: '' },
+            { id: 'sharpen-1', label: '轻度锐化', matrix: '0 -0.5 0 -0.5 3 -0.5 0 -0.5 0' },
+            { id: 'sharpen-2', label: '标准锐化', matrix: '0 -1 0 -1 5 -1 0 -1 0' },
+            { id: 'sharpen-3', label: '强锐化', matrix: '-1 -1 -1 -1 9 -1 -1 -1 -1' },
+            { id: 'sharpen-4', label: '超强锐化', matrix: '-1.5 -1.5 -1.5 -1.5 13 -1.5 -1.5 -1.5 -1.5' }
+        ];
+        
+        // 创建锐化滤镜
+        function createSharpenFilters() {
+            const svgNS = "http://www.w3.org/2000/svg";
+            const defs = document.createElementNS(svgNS, "svg");
+            defs.setAttribute("style", "display:none");
+            defs.setAttribute("width", "0");
+            defs.setAttribute("height", "0");
+            
+            sharpenFilters.forEach((filter, index) => {
+                if (index > 0) {
+                    const filterElement = document.createElementNS(svgNS, "filter");
+                    filterElement.setAttribute("id", filter.id);
+                    const convolveMatrix = document.createElementNS(svgNS, "feConvolveMatrix");
+                    convolveMatrix.setAttribute("order", "3");
+                    convolveMatrix.setAttribute("kernelMatrix", filter.matrix);
+                    filterElement.appendChild(convolveMatrix);
+                    defs.appendChild(filterElement);
+                }
+            });
+            document.body.appendChild(defs);
+        }
+        
+        // 设置拖放事件
+        ['dragenter', 'dragover'].forEach(e => document.body.addEventListener(e, p => { p.preventDefault(); p.stopPropagation(); dropZone.classList.add('drag-over'); }, false));
+        ['dragleave', 'drop'].forEach(e => document.body.addEventListener(e, p => { p.preventDefault(); p.stopPropagation(); dropZone.classList.remove('drag-over'); }, false));
+        document.body.addEventListener('drop', handleDrop, false);
+        
+        // 文件选择处理
+        function handleFileSelect(files) {
+            const file = files[0];
+            if (file && (file.type.startsWith('video/') || ['.mp4', '.mkv', '.avi', '.ts', '.rmvb', '.mov', '.webm'].some(ext => file.name.toLowerCase().endsWith(ext)))) {
+                playVideo(file);
+            } else {
+                showMessage('请选择有效的视频文件', 'warning');
+            }
+        }
+        
+        // 拖放处理
+        function handleDrop(e) {
+            const file = e.dataTransfer.files[0];
+            if (file && (file.type.startsWith('video/') || ['.mp4', '.mkv', '.avi', '.ts', '.rmvb', '.mov', '.webm'].some(ext => file.name.toLowerCase().endsWith(ext)))) {
+                playVideo(file);
+            } else {
+                showMessage('请拖入有效的视频文件', 'warning');
+            }
+        }
+        
+        // 播放视频
+        function playVideo(file) {
+            if (currentVideoURL) {
+                URL.revokeObjectURL(currentVideoURL);
+            }
+            currentVideoURL = URL.createObjectURL(file);
+            document.title = file.name + " | VisionX Player";
+            
+            if (!player) {
+                dropZone.style.display = 'none';
+                videoContainer.style.display = 'block';
+                player = videojs('video-player', {
+                    controls: true,
+                    autoplay: true,
+                    preload: 'auto',
+                    sources: [{ src: currentVideoURL, type: getVideoType(file) }]
+                });
+                player.ready(() => {
+                    setupAdvancedFeatures();
+                    showMessage('视频加载成功！');
+                    player.on('error', () => {
+                        if (file.name.toLowerCase().endsWith('.mkv')) {
+                            showMessage('MKV格式需要特殊处理，正在尝试兼容方案...', 'warning');
+                            setTimeout(() => retryMKVPlayback(file), 500);
+                        } else {
+                            showMessage('播放失败：不支持的视频格式或编码', 'warning');
+                        }
+                    });
+                });
+            } else {
+                player.src({ src: currentVideoURL, type: getVideoType(file) });
+                player.ready(() => {
+                    setupAdvancedFeatures();
+                    showMessage('视频已切换！');
+                });
+            }
+        }
+        
+        // 重试MKV播放
+        function retryMKVPlayback(file) {
+            if (player) { player.dispose(); player = null; }
+            player = videojs('video-player', {
+                controls: true, autoplay: true, preload: 'auto',
+                sources: [{ src: currentVideoURL, type: 'video/webm' }]
+            });
+            player.ready(() => {
+                setupAdvancedFeatures();
+                showMessage('MKV格式已使用兼容模式播放');
+            });
+            player.on('error', () => showMessage('无法播放此MKV文件，请尝试MP4格式', 'warning'));
+        }
+        
+        // 获取视频类型
+        function getVideoType(file) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            const typeMap = {
+                'mp4': 'video/mp4', 'mkv': 'video/x-matroska', 'avi': 'video/x-msvideo',
+                'ts': 'video/mp2t', 'rmvb': 'video/vnd.rn-realvideo', 'mov': 'video/quicktime',
+                'webm': 'video/webm'
+            };
+            return typeMap[ext] || 'video/mp4';
+        }
+        
+        // 设置高级功能
+        function setupAdvancedFeatures() {
+            if (!player) return;
+            loadAndApplyLastUsedSettings();
+            setupAudioTracks();
+            if (!player.controlBar.getChild('fullscreenToggle')) {
+                player.controlBar.addChild('fullscreenToggle');
+            }
+        }
+        
+        // 设置音轨
+        function setupAudioTracks() {
+            if (!player) return;
+            while (trackSelection.children.length > 1) { trackSelection.removeChild(trackSelection.lastChild); }
+            trackSelection.children[0].classList.add('active');
+            try {
+                const tracks = player.audioTracks();
+                if (tracks && tracks.length > 1) {
+                    for (let i = 1; i < tracks.length; i++) {
+                        const track = tracks[i];
+                        const trackElement = document.createElement('div');
+                        trackElement.className = 'audio-track';
+                        trackElement.onclick = () => switchAudioTrack(i);
+                        trackElement.innerHTML = `<div class="track-icon">🎧</div><div class="track-info"><h5>${track.label || `音轨 ${i + 1}`}</h5><p>${track.language || '未知语言'}</p></div>`;
+                        trackSelection.appendChild(trackElement);
+                    }
+                    showMessage(`检测到 ${tracks.length} 个音轨`);
+                } else {
+                    // showMessage('未检测到多音轨');
+                }
+            } catch (e) {
+                console.error('获取音轨时出错:', e);
+                showMessage('音轨功能在此浏览器中不可用', 'warning');
+            }
+        }
+        
+        // 切换音轨
+        function switchAudioTrack(trackIndex) {
+            try {
+                const tracks = player.audioTracks();
+                if (tracks && tracks.length > trackIndex) {
+                    trackSelection.querySelectorAll('.audio-track').forEach((track, index) => track.classList.toggle('active', index === trackIndex));
+                    for (let i = 0; i < tracks.length; i++) { tracks[i].enabled = (i === trackIndex); }
+                    showMessage(`已切换到音轨: ${trackIndex + 1}`);
+                }
+            } catch (e) { console.error('切换音轨时出错:', e); showMessage('音轨切换失败', 'warning'); }
+        }
+
+        // --- 状态管理 ---
+        const filterSettings = { brightness: 100, contrast: 100, saturate: 100, sharpen: 0 };
+        const transformSettings = { rotate: 0, scaleX: 1, scaleY: 1, zoom: 100 };
+
+        // --- 滤镜控制 ---
+        function clearActivePreset() { document.querySelectorAll('.preset-grid .btn').forEach(b => b.classList.remove('active-preset')); }
+        function updateFilterValue(element) {
+            clearActivePreset();
+            filterSettings[element.id] = parseInt(element.value);
+            document.getElementById(`${element.id}-value`).textContent = element.value;
+            applyFilters();
+            saveLastUsedSettings();
+        }
+        function applyFilters() {
+            if (!player) return;
+            const videoEl = player.el().querySelector('.vjs-tech');
+            if(videoEl) {
+                let filterString = `brightness(${filterSettings.brightness}%) contrast(${filterSettings.contrast}%) saturate(${filterSettings.saturate}%)`;
+                if (filterSettings.sharpen > 0) filterString += ` url(#${sharpenFilters[filterSettings.sharpen].id})`;
+                videoEl.style.filter = filterString;
+            }
+        }
+        function resetFilters() {
+            clearActivePreset();
+            Object.assign(filterSettings, { brightness: 100, contrast: 100, saturate: 100, sharpen: 0 });
+            ['brightness', 'contrast', 'saturate'].forEach(id => { document.getElementById(id).value = 100; document.getElementById(`${id}-value`).textContent = '100'; });
+            document.getElementById('sharpen').value = 0; document.getElementById('sharpen-value').textContent = '0';
+            applyFilters();
+            saveLastUsedSettings();
+            showMessage('滤镜已重置');
+        }
+
+        // --- 新增：变换控制 ---
+        function updateTransformValue(element) {
+            transformSettings.zoom = parseInt(element.value);
+            document.getElementById('zoom-value').textContent = `${element.value}%`;
+            applyTransforms();
+            saveLastUsedSettings();
+        }
+        function rotateVideo() {
+            transformSettings.rotate = (transformSettings.rotate + 90) % 360;
+            applyTransforms();
+            saveLastUsedSettings();
+        }
+        function flipVideo(axis) {
+            if (axis === 'x') transformSettings.scaleX *= -1;
+            if (axis === 'y') transformSettings.scaleY *= -1;
+            applyTransforms();
+            saveLastUsedSettings();
+        }
+        function setPlaybackRate(rate, btnElement) {
+            if (!player) return;
+            player.playbackRate(rate);
+            document.querySelectorAll('#speed-controls .btn').forEach(b => b.classList.remove('active-speed-btn'));
+            btnElement.classList.add('active-speed-btn');
+            saveLastUsedSettings();
+            showMessage(`播放速度已设为 ${rate}x`);
+        }
+        function applyTransforms() {
+            if (!player) return;
+            const videoEl = player.el().querySelector('.vjs-tech');
+            if (videoEl) {
+                const { rotate, scaleX, scaleY, zoom } = transformSettings;
+                videoEl.style.transform = `rotate(${rotate}deg) scaleX(${scaleX}) scaleY(${scaleY}) scale(${zoom / 100})`;
+            }
+        }
+        function resetTransforms() {
+            Object.assign(transformSettings, { rotate: 0, scaleX: 1, scaleY: 1, zoom: 100 });
+            document.getElementById('zoom').value = 100;
+            document.getElementById('zoom-value').textContent = '100%';
+            applyTransforms();
+            setPlaybackRate(1.0, document.querySelector('#speed-controls .btn:nth-child(2)'));
+            saveLastUsedSettings();
+            showMessage('画面变换已重置');
+        }
+        
+        // --- 设置持久化 ---
+        function saveLastUsedSettings() {
+            const settings = {
+                filters: filterSettings,
+                transforms: transformSettings,
+                playbackRate: player ? player.playbackRate() : 1.0
+            };
+            localStorage.setItem('visionxPlayer_lastSettings', JSON.stringify(settings));
+        }
+        
+        function loadAndApplyLastUsedSettings() {
+            const saved = localStorage.getItem('visionxPlayer_lastSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                // 加载滤镜
+                if(settings.filters) Object.assign(filterSettings, settings.filters);
+                ['brightness', 'contrast', 'saturate'].forEach(id => { document.getElementById(id).value = filterSettings[id]; document.getElementById(`${id}-value`).textContent = filterSettings[id]; });
+                document.getElementById('sharpen').value = filterSettings.sharpen; document.getElementById('sharpen-value').textContent = filterSettings.sharpen;
+                applyFilters();
+
+                // 加载变换
+                if(settings.transforms) Object.assign(transformSettings, settings.transforms);
+                document.getElementById('zoom').value = transformSettings.zoom;
+                document.getElementById('zoom-value').textContent = `${transformSettings.zoom}%`;
+                applyTransforms();
+
+                // 加载播放速度
+                const rate = settings.playbackRate || 1.0;
+                const speedButtons = { 0.5: 0, 1.0: 1, 1.5: 2, 2.0: 3 };
+                const btnIndex = speedButtons[rate] !== undefined ? speedButtons[rate] : 1;
+                setPlaybackRate(rate, document.querySelectorAll('#speed-controls .btn')[btnIndex]);
+            } else {
+                // 如果没有保存的设置，确保倍速按钮在1.0x高亮
+                setPlaybackRate(1.0, document.querySelector('#speed-controls .btn:nth-child(2)'));
+            }
+        }
+        
+        // --- 滤镜预设 ---
+        function applyPreset(preset, btnElement) {
+            clearActivePreset();
+            let presetName = '';
+            const presets = {
+                'hdr_vivid': { b: 110, c: 130, s: 140, sh: 2, name: '生动' },
+                'hdr_cinema': { b: 95, c: 120, s: 110, sh: 1, name: '影院' },
+                'hdr_bright': { b: 130, c: 110, s: 120, sh: 1, name: '明亮' },
+                'hdr_soft': { b: 105, c: 105, s: 110, sh: 0, name: '柔和' },
+                'hdr_contrast': { b: 100, c: 150, s: 120, sh: 3, name: '高对比' },
+                'hdr_night': { b: 120, c: 100, s: 90, sh: 0, name: '夜间' },
+                'hdr_vivid_pro': { b: 115, c: 140, s: 150, sh: 3, name: '生动Pro' },
+                'hdr_ultra_clear': { b: 105, c: 135, s: 125, sh: 2, name: '超清' },
+                'hdr_color_boost': { b: 125, c: 115, s: 160, sh: 1, name: '色彩增强' },
+                'hdr_true_black': { b: 90, c: 140, s: 100, sh: 1, name: '纯黑' },
+                'hdr_high_motion': { b: 120, c: 130, s: 110, sh: 2, name: '高动态' },
+                'hdr_natural': { b: 100, c: 110, s: 105, sh: 0, name: '自然' }
+            };
+            const p = presets[preset];
+            if(p) {
+                filterSettings.brightness = p.b; filterSettings.contrast = p.c; filterSettings.saturate = p.s; filterSettings.sharpen = p.sh;
+                presetName = p.name;
+            }
+
+            // 更新UI
+            document.getElementById('brightness').value = filterSettings.brightness; document.getElementById('brightness-value').textContent = filterSettings.brightness;
+            document.getElementById('contrast').value = filterSettings.contrast; document.getElementById('contrast-value').textContent = filterSettings.contrast;
+            document.getElementById('saturate').value = filterSettings.saturate; document.getElementById('saturate-value').textContent = filterSettings.saturate;
+            document.getElementById('sharpen').value = filterSettings.sharpen; document.getElementById('sharpen-value').textContent = filterSettings.sharpen;
+            
+            applyFilters();
+            saveLastUsedSettings();
+            showMessage(`已应用预设: ${presetName}`);
+            if (btnElement) btnElement.classList.add('active-preset');
+        }
+        
+        function toggleSettings() { controlsPanel.classList.toggle('visible'); }
+        
+        function showMessage(text, type = 'success') {
+            const messageText = document.querySelector('.message-text');
+            messageText.textContent = text;
+            const messageIcon = document.querySelector('.message-icon');
+            statusMessage.classList.toggle('warning', type === 'warning');
+            messageIcon.textContent = type === 'warning' ? '⚠️' : '✓';
+            messageIcon.className = `message-icon ${type}-icon`;
+            
+            statusMessage.classList.add('show');
+            setTimeout(() => statusMessage.classList.remove('show'), 3000);
+        }
+        
+        // 初始化
+        createSharpenFilters();
+    </script>
+</body>
+</html>
