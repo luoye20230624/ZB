@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -186,7 +184,6 @@
             height: 100%;
         }
 
-        /* --- 新增：视频元素变换过渡 --- */
         .video-js .vjs-tech {
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
@@ -206,8 +203,8 @@
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
             transform: translateX(120%);
             transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            max-height: calc(100vh - 180px); /* 限制最大高度 */
-            overflow-y: auto; /* 内容过多时滚动 */
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
         }
         
         #advanced-controls.visible {
@@ -359,14 +356,12 @@
             color: var(--accent);
         }
 
-        /* --- 新增：倍速按钮高亮样式 --- */
         .btn.active-speed-btn {
             background: linear-gradient(90deg, var(--primary), var(--secondary));
             color: white;
             box-shadow: 0 0 15px rgba(255, 62, 157, 0.5);
         }
 
-        
         .audio-track {
             display: flex;
             align-items: center;
@@ -447,7 +442,105 @@
         .warning-icon {
             color: var(--warning);
         }
+
+        /* --- 新增：直播流弹窗样式 --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s 0.3s, opacity 0.3s ease;
+        }
+
+        .modal-overlay.visible {
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 25px 30px;
+            border-radius: 16px;
+            border: 1px solid var(--glass);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            width: 90%;
+            max-width: 550px;
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .modal-overlay.visible .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            font-size: 22px;
+            font-weight: 600;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
         
+        .close-modal {
+             background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 28px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .close-modal:hover {
+            color: var(--accent);
+            transform: rotate(90deg);
+        }
+
+        .modal-body p {
+            font-size: 15px;
+            opacity: 0.8;
+            margin-bottom: 15px;
+        }
+
+        #live-stream-url {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--glass);
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            color: var(--light);
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        #live-stream-url:focus {
+            border-color: var(--accent);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
         @media (max-width: 768px) {
             .app-header {
                 padding: 12px 15px;
@@ -506,9 +599,10 @@
         <div class="app-header">
             <div class="logo">
                 <div class="logo-icon">▶</div>
-                <div>本地网页视频播放器_v1.2</div>
+                <div>本地网页视频播放器_v1.3</div>
             </div>
             <div class="app-controls">
+                <button class="control-btn" title="播放直播流" onclick="toggleLiveStreamModal()">📡</button>
                 <button class="control-btn" title="设置" onclick="toggleSettings()">⚙️</button>
             </div>
         </div>
@@ -523,9 +617,9 @@
                 <div class="format-hint">
                     <div class="format-tag">MP4</div>
                     <div class="format-tag">MKV</div>
+                    <div class="format-tag">FLV</div>
                     <div class="format-tag">AVI</div>
                     <div class="format-tag">TS</div>
-                    <div class="format-tag">RMVB</div>
                     <div class="format-tag">MOV</div>
                     <div class="format-tag">WEBM</div>
                 </div>
@@ -543,7 +637,6 @@
                 <button class="close-panel" onclick="toggleSettings()">×</button>
             </div>
             
-            <!-- --- 新增：画面变换控制区 --- -->
             <div class="control-section">
                 <h4><i>🖼️</i> 画面变换与速度</h4>
                 <div class="control-group">
@@ -637,9 +730,30 @@
                 </div>
             </div>
         </div>
+
+        <!-- 新增: 直播流弹窗 -->
+        <div id="live-stream-modal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>播放直播流</h3>
+                    <button class="close-modal" onclick="toggleLiveStreamModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <p>请输入直播源地址 (支持 HLS/m3u8, FLV 等格式)</p>
+                    <input type="text" id="live-stream-url" placeholder="https://example.com/live.m3u8" onkeydown="if(event.key==='Enter') handleLiveStreamPlay()">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="toggleLiveStreamModal()">取消</button>
+                    <button class="btn btn-primary" onclick="handleLiveStreamPlay()">播放</button>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <!-- 新增: FLV直播流支持 -->
+    <script src="https://cdn.jsdelivr.net/npm/flv.js/dist/flv.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/videojs-flvjs/dist/videojs-flvjs.min.js"></script>
     <script>
         const dropZone = document.getElementById('drop-zone');
         const videoContainer = document.getElementById('video-container');
@@ -647,6 +761,7 @@
         const controlsPanel = document.getElementById('advanced-controls');
         const statusMessage = document.getElementById('status-message');
         const trackSelection = document.getElementById('track-selection');
+        const liveStreamModal = document.getElementById('live-stream-modal'); // 新增
         let player = null;
         let currentVideoURL = null;
         
@@ -659,7 +774,6 @@
             { id: 'sharpen-4', label: '超强锐化', matrix: '-1.5 -1.5 -1.5 -1.5 13 -1.5 -1.5 -1.5 -1.5' }
         ];
         
-        // 创建锐化滤镜
         function createSharpenFilters() {
             const svgNS = "http://www.w3.org/2000/svg";
             const defs = document.createElementNS(svgNS, "svg");
@@ -681,47 +795,45 @@
             document.body.appendChild(defs);
         }
         
-        // 设置拖放事件
         ['dragenter', 'dragover'].forEach(e => document.body.addEventListener(e, p => { p.preventDefault(); p.stopPropagation(); dropZone.classList.add('drag-over'); }, false));
         ['dragleave', 'drop'].forEach(e => document.body.addEventListener(e, p => { p.preventDefault(); p.stopPropagation(); dropZone.classList.remove('drag-over'); }, false));
         document.body.addEventListener('drop', handleDrop, false);
         
-        // 文件选择处理
         function handleFileSelect(files) {
             const file = files[0];
-            if (file && (file.type.startsWith('video/') || ['.mp4', '.mkv', '.avi', '.ts', '.rmvb', '.mov', '.webm'].some(ext => file.name.toLowerCase().endsWith(ext)))) {
+            if (file && (file.type.startsWith('video/') || ['.mp4', '.mkv', '.avi', '.ts', '.rmvb', '.mov', '.webm', '.flv'].some(ext => file.name.toLowerCase().endsWith(ext)))) {
                 playVideo(file);
             } else {
                 showMessage('请选择有效的视频文件', 'warning');
             }
         }
         
-        // 拖放处理
         function handleDrop(e) {
             const file = e.dataTransfer.files[0];
-            if (file && (file.type.startsWith('video/') || ['.mp4', '.mkv', '.avi', '.ts', '.rmvb', '.mov', '.webm'].some(ext => file.name.toLowerCase().endsWith(ext)))) {
+            if (file && (file.type.startsWith('video/') || ['.mp4', '.mkv', '.avi', '.ts', '.rmvb', '.mov', '.webm', '.flv'].some(ext => file.name.toLowerCase().endsWith(ext)))) {
                 playVideo(file);
             } else {
                 showMessage('请拖入有效的视频文件', 'warning');
             }
         }
         
-        // 播放视频
         function playVideo(file) {
+            if (liveStreamModal.classList.contains('visible')) {
+                toggleLiveStreamModal();
+            }
             if (currentVideoURL) {
                 URL.revokeObjectURL(currentVideoURL);
             }
             currentVideoURL = URL.createObjectURL(file);
             document.title = file.name + " | VisionX Player";
             
+            const source = { src: currentVideoURL, type: getVideoType(file) };
+
             if (!player) {
                 dropZone.style.display = 'none';
                 videoContainer.style.display = 'block';
                 player = videojs('video-player', {
-                    controls: true,
-                    autoplay: true,
-                    preload: 'auto',
-                    sources: [{ src: currentVideoURL, type: getVideoType(file) }]
+                    controls: true, autoplay: true, preload: 'auto', sources: [source]
                 });
                 player.ready(() => {
                     setupAdvancedFeatures();
@@ -736,15 +848,42 @@
                     });
                 });
             } else {
-                player.src({ src: currentVideoURL, type: getVideoType(file) });
+                player.src(source);
                 player.ready(() => {
                     setupAdvancedFeatures();
                     showMessage('视频已切换！');
                 });
             }
         }
+
+        // --- 新增：播放直播流 ---
+        function playLiveStream(url) {
+            if (currentVideoURL) {
+                URL.revokeObjectURL(currentVideoURL);
+                currentVideoURL = null;
+            }
+            document.title = "直播流 | VisionX Player";
+
+            const type = getLiveStreamType(url);
+            const source = { src: url, type: type };
+            showMessage('正在加载直播流...', 'success');
+
+            if (!player) {
+                dropZone.style.display = 'none';
+                videoContainer.style.display = 'block';
+                player = videojs('video-player', {
+                    controls: true, autoplay: true, preload: 'auto', sources: [source]
+                });
+                player.ready(() => {
+                    setupAdvancedFeatures();
+                    player.on('error', () => showMessage('直播加载失败，请检查URL或网络', 'warning'));
+                });
+            } else {
+                player.src(source);
+                player.ready(() => setupAdvancedFeatures());
+            }
+        }
         
-        // 重试MKV播放
         function retryMKVPlayback(file) {
             if (player) { player.dispose(); player = null; }
             player = videojs('video-player', {
@@ -758,18 +897,29 @@
             player.on('error', () => showMessage('无法播放此MKV文件，请尝试MP4格式', 'warning'));
         }
         
-        // 获取视频类型
         function getVideoType(file) {
             const ext = file.name.split('.').pop().toLowerCase();
             const typeMap = {
                 'mp4': 'video/mp4', 'mkv': 'video/x-matroska', 'avi': 'video/x-msvideo',
                 'ts': 'video/mp2t', 'rmvb': 'video/vnd.rn-realvideo', 'mov': 'video/quicktime',
-                'webm': 'video/webm'
+                'webm': 'video/webm', 'flv': 'video/x-flv'
             };
             return typeMap[ext] || 'video/mp4';
         }
+
+        // --- 新增：获取直播流类型 ---
+        function getLiveStreamType(url) {
+            const lowerUrl = url.toLowerCase();
+            if (lowerUrl.includes('.m3u8')) {
+                return 'application/x-mpegURL';
+            }
+            if (lowerUrl.includes('.flv')) {
+                return 'video/x-flv';
+            }
+            // 默认回退到 HLS (m3u8)，因为这是最常见的直播格式
+            return 'application/x-mpegURL';
+        }
         
-        // 设置高级功能
         function setupAdvancedFeatures() {
             if (!player) return;
             loadAndApplyLastUsedSettings();
@@ -779,7 +929,6 @@
             }
         }
         
-        // 设置音轨
         function setupAudioTracks() {
             if (!player) return;
             while (trackSelection.children.length > 1) { trackSelection.removeChild(trackSelection.lastChild); }
@@ -796,16 +945,12 @@
                         trackSelection.appendChild(trackElement);
                     }
                     showMessage(`检测到 ${tracks.length} 个音轨`);
-                } else {
-                    // showMessage('未检测到多音轨');
                 }
             } catch (e) {
                 console.error('获取音轨时出错:', e);
-                showMessage('音轨功能在此浏览器中不可用', 'warning');
             }
         }
         
-        // 切换音轨
         function switchAudioTrack(trackIndex) {
             try {
                 const tracks = player.audioTracks();
@@ -817,11 +962,9 @@
             } catch (e) { console.error('切换音轨时出错:', e); showMessage('音轨切换失败', 'warning'); }
         }
 
-        // --- 状态管理 ---
         const filterSettings = { brightness: 100, contrast: 100, saturate: 100, sharpen: 0 };
         const transformSettings = { rotate: 0, scaleX: 1, scaleY: 1, zoom: 100 };
 
-        // --- 滤镜控制 ---
         function clearActivePreset() { document.querySelectorAll('.preset-grid .btn').forEach(b => b.classList.remove('active-preset')); }
         function updateFilterValue(element) {
             clearActivePreset();
@@ -849,7 +992,6 @@
             showMessage('滤镜已重置');
         }
 
-        // --- 新增：变换控制 ---
         function updateTransformValue(element) {
             transformSettings.zoom = parseInt(element.value);
             document.getElementById('zoom-value').textContent = `${element.value}%`;
@@ -893,7 +1035,6 @@
             showMessage('画面变换已重置');
         }
         
-        // --- 设置持久化 ---
         function saveLastUsedSettings() {
             const settings = {
                 filters: filterSettings,
@@ -907,46 +1048,35 @@
             const saved = localStorage.getItem('visionxPlayer_lastSettings');
             if (saved) {
                 const settings = JSON.parse(saved);
-                // 加载滤镜
                 if(settings.filters) Object.assign(filterSettings, settings.filters);
                 ['brightness', 'contrast', 'saturate'].forEach(id => { document.getElementById(id).value = filterSettings[id]; document.getElementById(`${id}-value`).textContent = filterSettings[id]; });
                 document.getElementById('sharpen').value = filterSettings.sharpen; document.getElementById('sharpen-value').textContent = filterSettings.sharpen;
                 applyFilters();
 
-                // 加载变换
                 if(settings.transforms) Object.assign(transformSettings, settings.transforms);
                 document.getElementById('zoom').value = transformSettings.zoom;
                 document.getElementById('zoom-value').textContent = `${transformSettings.zoom}%`;
                 applyTransforms();
 
-                // 加载播放速度
                 const rate = settings.playbackRate || 1.0;
                 const speedButtons = { 0.5: 0, 1.0: 1, 1.5: 2, 2.0: 3 };
                 const btnIndex = speedButtons[rate] !== undefined ? speedButtons[rate] : 1;
                 setPlaybackRate(rate, document.querySelectorAll('#speed-controls .btn')[btnIndex]);
             } else {
-                // 如果没有保存的设置，确保倍速按钮在1.0x高亮
                 setPlaybackRate(1.0, document.querySelector('#speed-controls .btn:nth-child(2)'));
             }
         }
         
-        // --- 滤镜预设 ---
         function applyPreset(preset, btnElement) {
             clearActivePreset();
             let presetName = '';
             const presets = {
-                'hdr_vivid': { b: 110, c: 130, s: 140, sh: 2, name: '生动' },
-                'hdr_cinema': { b: 95, c: 120, s: 110, sh: 1, name: '影院' },
-                'hdr_bright': { b: 130, c: 110, s: 120, sh: 1, name: '明亮' },
-                'hdr_soft': { b: 105, c: 105, s: 110, sh: 0, name: '柔和' },
-                'hdr_contrast': { b: 100, c: 150, s: 120, sh: 3, name: '高对比' },
-                'hdr_night': { b: 120, c: 100, s: 90, sh: 0, name: '夜间' },
-                'hdr_vivid_pro': { b: 115, c: 140, s: 150, sh: 3, name: '生动Pro' },
-                'hdr_ultra_clear': { b: 105, c: 135, s: 125, sh: 2, name: '超清' },
-                'hdr_color_boost': { b: 125, c: 115, s: 160, sh: 1, name: '色彩增强' },
-                'hdr_true_black': { b: 90, c: 140, s: 100, sh: 1, name: '纯黑' },
-                'hdr_high_motion': { b: 120, c: 130, s: 110, sh: 2, name: '高动态' },
-                'hdr_natural': { b: 100, c: 110, s: 105, sh: 0, name: '自然' }
+                'hdr_vivid': { b: 110, c: 130, s: 140, sh: 2, name: '生动' }, 'hdr_cinema': { b: 95, c: 120, s: 110, sh: 1, name: '影院' },
+                'hdr_bright': { b: 130, c: 110, s: 120, sh: 1, name: '明亮' }, 'hdr_soft': { b: 105, c: 105, s: 110, sh: 0, name: '柔和' },
+                'hdr_contrast': { b: 100, c: 150, s: 120, sh: 3, name: '高对比' }, 'hdr_night': { b: 120, c: 100, s: 90, sh: 0, name: '夜间' },
+                'hdr_vivid_pro': { b: 115, c: 140, s: 150, sh: 3, name: '生动Pro' }, 'hdr_ultra_clear': { b: 105, c: 135, s: 125, sh: 2, name: '超清' },
+                'hdr_color_boost': { b: 125, c: 115, s: 160, sh: 1, name: '色彩增强' }, 'hdr_true_black': { b: 90, c: 140, s: 100, sh: 1, name: '纯黑' },
+                'hdr_high_motion': { b: 120, c: 130, s: 110, sh: 2, name: '高动态' }, 'hdr_natural': { b: 100, c: 110, s: 105, sh: 0, name: '自然' }
             };
             const p = presets[preset];
             if(p) {
@@ -954,7 +1084,6 @@
                 presetName = p.name;
             }
 
-            // 更新UI
             document.getElementById('brightness').value = filterSettings.brightness; document.getElementById('brightness-value').textContent = filterSettings.brightness;
             document.getElementById('contrast').value = filterSettings.contrast; document.getElementById('contrast-value').textContent = filterSettings.contrast;
             document.getElementById('saturate').value = filterSettings.saturate; document.getElementById('saturate-value').textContent = filterSettings.saturate;
@@ -967,6 +1096,25 @@
         }
         
         function toggleSettings() { controlsPanel.classList.toggle('visible'); }
+
+        // --- 新增: 直播弹窗控制 ---
+        function toggleLiveStreamModal() {
+            liveStreamModal.classList.toggle('visible');
+            if (liveStreamModal.classList.contains('visible')) {
+                document.getElementById('live-stream-url').focus();
+            }
+        }
+        function handleLiveStreamPlay() {
+            const urlInput = document.getElementById('live-stream-url');
+            const url = urlInput.value.trim();
+            if (url) {
+                playLiveStream(url);
+                toggleLiveStreamModal();
+                urlInput.value = ''; // 清空输入框
+            } else {
+                showMessage('请输入有效的直播流地址', 'warning');
+            }
+        }
         
         function showMessage(text, type = 'success') {
             const messageText = document.querySelector('.message-text');
@@ -980,7 +1128,6 @@
             setTimeout(() => statusMessage.classList.remove('show'), 3000);
         }
         
-        // 初始化
         createSharpenFilters();
     </script>
 </body>
