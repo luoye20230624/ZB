@@ -78,7 +78,6 @@ CCTV14,http://8.138.7.223/tv/hot.php?id=14
 CCTV15,http://8.138.7.223/tv/hot.php?id=15
 CCTV16,http://8.138.7.223/tv/hot.php?id=16
 CCTV17,http://8.138.7.223/tv/hot.php?id=17
-CCTV16,http://8.138.7.223/tv/hot.php?id=16
 浙江卫视,http://8.138.7.223/tv/zjws.m3u8
 江苏卫视,http://8.138.7.223/tv/dl/jstv.php?id=jsws
 兵团卫视,http://8.138.7.223/tv/btws.m3u8
