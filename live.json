@@ -1,0 +1,270 @@
+{
+"lives": [
+ {
+            "name": "🐟🐟陈湘儒myTV🐟🐟",
+            "type": 0,
+            "url": "https://raw.githubusercontent.com/cxr9912/cxr2025/refs/heads/main/my.txt",
+            "ua": "okhttp/3.15",
+            "epg": "http://iptv.52sw.top:668/?ch={name}&date={date}"
+ },
+  {
+            "name": "🍈📺ofiii直播20250702 【挂T紅杏台湾美国】",
+            "type": "0",
+            "pass": true,
+            "url": "https://raw.githubusercontent.com/cxr9912/cxr2025/refs/heads/main/Sub.m3u",
+            "ua": "xieanqishiwoerzi/0.0.1"
+ },
+  {
+            "name": "🍈📺 IPTV研究所【过期时间：7/09/2025】",
+            "type": "0",
+            "pass": true,
+            "url": "https://iptv.mydiver.eu.org/get.php?username=tg_5i8xc0r6&password=r80ef6xbpwwy&type=m3u_plus",
+            "ua": "xieanqishiwoerzi/0.0.1"
+ },
+  {
+    "name" : "🧑🏻‍🌾♾️🍄Smt直播catvod20250707【挂T香港台湾美国】🧑🏻‍🌾",
+    "type" : 3,
+    "url": "https://live.catvod.com/smart.php",
+    "ext" : {}
+  },
+ {
+            "name": "🍪🍄【流畅央视卫视直播 20250707】",
+            "type": 0,
+            "url": "https://live.catvod.com/mq.php?catvod.com=m3u",
+            "playerType":1,
+            "epg": "http://iptv.52sw.top:668/?ch={name}&date={date}"
+  },
+  {
+   "name": "🍄💔breezy选节点20250608【挂T台湾】🌸",
+   "type": "0",
+   "url":"https://breezy-audrie-zspace-7524863c.koyeb.app/snowai?type=m3u&token=leifeng"
+ },
+  {
+   "name": "♾️🍄稳定流氓8.138.7.223/51.php 20250627🍄🍄🍄💔",
+   "type": "0",
+   "url":"http://8.138.7.223/51.php"
+ },
+  {
+    "name": "🍑bxtv.txt 20250706",
+    "url": "https://bx.757888.xyz/bxtv.txt",
+    "ua":  "okhttp/3.15"
+  },
+ {
+   "name": "♾️🍄/爱家 20250706🍄🍄🍄💔",
+   "type": "0",
+   "url":"http://hk.mushui.tk/mqlive/mqtw.txt"
+ }, 
+{
+   "name": "♾️🍄my.txt 20250628🍄🍄🍄💔",
+   "type": "0",
+   "url":"https://ghfast.top/https://raw.githubusercontent.com/qingtingjjjjjjj/iptv-auto-update/main/my.txt"
+ },
+  {
+   "name": "♾️🍄aktv 20250618🍄🍄🍄💔",
+   "type": "0",
+   "url":"https://aktv.space/live.m3u"
+ },
+  {
+            "name": "🍪【Webview直播 20250622】",
+            "type": 0,
+            "url": "https://cnb.cool/junchao.tang/llive/-/git/raw/main/webview.txt",
+            "playerType":1,
+            "epg": "http://iptv.52sw.top:668/?ch={name}&date={date}"
+  },
+  {
+   "name": "♾️youtubeyou油管直播20250610",
+   "type": "0",
+   "url":"https://raw.githubusercontent.com/cxr9912/cxr2025/refs/heads/main/youtube.txt",
+    "epg": "https://epg.v1.mk/json?ch={name}&date={date}",
+            "logo": "https://epg.112114.xyz/logo/{name}.png"
+ },
+
+ {
+   "name": "♾️😑白嫖军团💔",
+   "type": "0",
+   "url":"http://gg.7749.org/z/0/白嫖军团.txt"
+ },
+ {
+   "name": "♾️Gather用香港节点mytv接口💔",
+   "type": "0",
+   "url":"https://tv.iill.top/m3u/MyTV"
+ },
+  {
+   "name": "🍅AVmovie50302💔",
+   "type": "0",
+   "url":"https://raw.githubusercontent.com/cxr9912/cxr2025/refs/heads/main/AVmovie50302.txt"
+ },
+  {
+   "name": "🍅My.m3u 20250613💔",
+   "type": "0",
+   "url":"https://raw.githubusercontent.com/cxr9912/cxr2025/refs/heads/main/My.m3u"
+ },
+  {
+   "name": "🍅🧑🏻‍🌾XXX.m3u 20250707💔",
+   "type": "0",
+   "url":"https://raw.githubusercontent.com/cxr9912/cxr2025/refs/heads/main/xxx.m3u"
+ },
+ {"name":"🍅秘密花园28668💔",
+"type":0,
+"url":"https://files.catbox.moe/pdnnb3.txt",
+"playerType":1,
+"epg":"http://diyp5.112114.xyz/?ch={name}&date={date}",
+"logo":"http://diyp5.112114.xyz/{name}.png"
+},
+ {
+            "name": "♾️YouTubeLive每6小时自动抓取",
+            "ua": "okhttp/3.0",
+            "playerType": 2,
+            "url": "https://raw.githubusercontent.com/cxr9912/cxr2025/refs/heads/main/youtubelive.m3u",
+            "epg": "https://epg.v1.mk/json?ch={name}&date={date}",
+            "logo": "https://epg.112114.xyz/logo/{name}.png"
+        },
+ {
+            "name": "📺驸马影视•国内IPTV",
+            "type": 0,
+            "url": "https://fy.iptv1.ggff.net/?url=http://www.douzhicloud.site:35455",
+            "epg": "http://epg.112114.xyz/?ch={name}&date={date}",
+            "logo": "https://epg.112114.xyz/logo/{name}.png"
+  },
+ {
+"name":"📺Gather电视",
+"type":0,
+"url":"https://tv.iill.top/m3u/Gather",
+"ua":"okhttp/5.0.0-alpha.14",
+"epg":"http://127.0.0.1:10079/p/0/proxy/http://epg.112114.xyz/?ch={name}&date={date}",
+"logo":"http://127.0.0.1:10079/p/0/proxy/https://epg.112114.xyz/logo/{name}.png"
+},
+ {
+            "name": "📺南风直播源",
+            "type": 0,
+            "url": "https://gh-proxy.com/https://raw.githubusercontent.com/yoursmile66/TVBox/main/live.txt",
+            "playerType": 1,
+            "ua": "okhttp/3.15",
+            "epg": "http://epg.112114.xyz/?ch={name}&date={date}",
+            "logo": "https://epg.112114.xyz/logo/{name}.png"
+  },
+ {
+      "name": "🧲MQitv20250609",
+      "api": "csp_MQiTV",
+      "ua": "okhttp",
+      "jar": "https://raw.githubusercontent.com/cxr9912/cxr2025/refs/heads/main/mtv.jar",
+      "ext": "https://59.125.210.231:4433",
+      "timeout": 30,
+      "playerType": 1    
+    },
+ {
+      "name": "🧲MQiTV20250611", 
+      "api": "csp_MQiTV",
+      "jar": "https://raw.githubusercontent.com/cxr9912/cxr2025/refs/heads/main/custom_spider.jar",
+      "ext": "https://59.125.210.231:4433", 
+      "logo": "https://epg.112114.xyz/logo/{name}.png",
+      "epg": "http://epg.112114.xyz/?ch={name}&date={date}"
+},
+ {
+      "name": "🌸MQiTV20250618",
+      "api": "csp_MQiTV",
+      "jar": "https://slink.ltd/https://raw.githubusercontent.com/sqspot/tac/refs/heads/main/jar/fmMQiTV.jar",
+      "ext": "https://59.125.210.231:4433",
+      "playerType": 1,
+      "epg": "http://epg.112114.xyz/?ch={name}&date={date}"
+    },
+ {
+      "name": "🍑🌸MQitv20250618🍑🌸",
+      "api": "csp_MQiTV",
+      "ua": "okhttp",
+      "ext": "https://60.248.127.232:4433",
+      "jar": "http://files.catbox.moe/chvyo2.txt",
+      "timeout": 30,
+      "playerType": 1
+      
+    },
+ {
+            "name": "🌸LiTV[台湾美国xg.52sw.top]",
+            "type": 0,
+            "url": "http://xg.52sw.top/iptv/litv.php",
+            "ua": "okhttp/3.15",
+            "epg": "http://iptv.52sw.top:668/?ch={name}&date={date}"
+        },
+
+
+ {
+            "name": "MyTvSuper20250607 【挂T紅杏台湾美国】",
+            "type": 0,
+            "url": "https://json.doube.eu.org/Doubebly/MyTvSuper/",           
+            "epg": "http://epg.112114.xyz/?ch={name}&date=DATE1SUB",
+            "logo": "https://epg.112114.xyz/logo/{name}.png"
+            
+  },
+  {
+            "name": "173.txt",
+            "type": 0,
+            "url": "https://raw.githubusercontent.com/cxr9912/cxr2025/refs/heads/main/173.txt",
+              "so": "https://raw.githubusercontent.com/cxr9912/cxr2025/refs/heads/main/libp3p.so",
+             "epg": "http://epg.112114.xyz/?ch={name}&date={date}",
+            "logo": "https://epg.112114.xyz/logo/{name}.png"
+   },
+  {
+            "name": "快直播[低码率]",
+            "type": 0,
+            "url": "http://xg.52sw.top/play/kzb",
+            "ua": "okhttp/3.15",
+            "epg": "http://iptv.52sw.top:668/?ch={name}&date={date}"
+        },
+   {
+  "name": "🧑🏻‍🌾SMT(py修复)开本机代理端口7897",
+  "type": 3,
+  "api": "https://json.doube.eu.org/python/live_smt.py",
+  "ext": {
+    "proxy": {
+      "http": "http://127.0.0.1:7897",
+      "https": "http://127.0.0.1:7897"
+    }
+  }
+},
+ {
+  "name": "🧑🏻‍🌾SMT(py修复)挂梯",
+  "type": 3,
+  "api": "https://json.doube.eu.org/python/live_smt.py",
+  "ext": {}
+},
+
+
+  {
+"name": "快直播(20250608)",
+"type": 3,
+"api": "https://raw.githubusercontent.com/cxr9912/cxr2025/refs/heads/main/kzb.py",
+"ext": "68747470733a2f2f6a7a62356b716c6e2e6875616a69616564752e636f6d2f70726f642d6170692f697074762f676574497074764c697374"
+},
+ {
+  "name": "快直播(20250609)",
+  "type": 3,
+  "api": "https://json.doube.eu.org/python/live_kzb.py",
+  "ext": "68747470733A2F2F6A7A623132332E7A68756261696368656E672E636F6D2F70726F642D6170692F697074762F676574497074764C697374"
+},
+  {
+      "name": "斯玛特(KSweb服务器美国节点) ",
+      "type": 3,
+      "url": "http://127.0.0.1:8081/smt.php",
+      "ext": {}
+    },
+  {
+      "name": "SMT(KSweb服务器) ",
+      "type": 3,
+      "api": "http://127.0.0.1:8081/live_smt.py",
+      "ext": {}
+},
+  {
+      "name": "LITV(KSweb服务器) ",
+      "type": 3,
+      "api": "http://127.0.0.1:8081/live_litv.py",
+      "ext": {}
+    },
+  {
+            "name": "5008[KSweb服务器]",
+            "type": 0,
+            "url": "http://127.0.0.1:8081/5008.m3u",
+            "ua": "okhttp/3.15",
+            "epg": "http://iptv.52sw.top:668/?ch={name}&date={date}"
+  }
+      ]
+}
