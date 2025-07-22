@@ -292,11 +292,11 @@
       "epg": "http://epg.112114.xyz/?ch={name}&date={date}"
 },
  {
-      "name": "🍑🧲MQiTV61 20250722 湖南电信", 
+      "name": "🍑🧲MQiTV61 20250722 山东电信", 
       "api": "csp_MQiTV",
       "ua": "okhttp",
       "jar": "https://std.850058.xyz/custom_spider.jar",
-      "ext": "http://175.8.156.41:8090", 
+      "ext": "http://182.47.255.173:880", 
        "timeout": 30,
        "playerType": 1,
       "logo": "https://epg.112114.xyz/logo/{name}.png",
