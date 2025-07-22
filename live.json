@@ -285,7 +285,7 @@
       "api": "csp_MQiTV",
       "ua": "okhttp",
       "jar": "https://raw.bgithub.xyz/cxr9912/cxr2025/refs/heads/main/custom_spider.jar",
-      "ext": "http://59.125.210.231:8014", 
+      "ext": "http://220.130.4.10:1888", 
        "timeout": 30,
        "playerType": 1,
       "logo": "https://epg.112114.xyz/logo/{name}.png",
