@@ -281,18 +281,18 @@
       "epg": "http://epg.112114.xyz/?ch={name}&date={date}"
 },
  {
-      "name": "🍑🧲MQiTV61 20250722", 
+      "name": "🍑🧲MQiTV61 20250723", 
       "api": "csp_MQiTV",
       "ua": "okhttp",
       "jar": "https://raw.bgithub.xyz/cxr9912/cxr2025/refs/heads/main/mtv.jar",
-      "ext": "http://123.195.179.120:1888", 
+      "ext": "http://59.125.210.231:8014", 
        "timeout": 30,
        "playerType": 1,
       "logo": "https://epg.112114.xyz/logo/{name}.png",
       "epg": "http://epg.112114.xyz/?ch={name}&date={date}"
 },
  {
-      "name": "🍑🧲MQiTV61 20250722 广东电信", 
+      "name": "🍑🧲MQiTV61 20250723 广东电信", 
       "api": "csp_MQiTV",
       "ua": "okhttp",
       "jar": "https://raw.bgithub.xyz/cxr9912/cxr2025/refs/heads/main/mtv.jar",
