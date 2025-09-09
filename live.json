@@ -302,7 +302,17 @@
       "logo": "https://epg.112114.xyz/logo/{name}.png",
       "epg": "http://epg.112114.xyz/?ch={name}&date={date}"
 },
+{
 
+  "name": "🔞💔(翻墙)(18+)FreesHot(python)",
+
+  "type": 3,
+
+  "api": "https://d.kstore.dev/download/14756/python/live_freeshot.py",
+
+  "ext": {}
+
+},
   {
             "name": "💔抖音推流 20250719 【挂T紅杏台湾美国】",
             "type": "0",
