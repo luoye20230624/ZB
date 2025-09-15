@@ -1,33 +1,32 @@
 {
 "lives": [
- {
+{
             "name": "💔💎易发APP💎💔",
             "type": 0,
             "url": "https://tvv.tw/github.com/fafa002/yf2025/blob/main/yiyifafa.txt",
             "playerType": 1,
             "epg": "https://epg.112114.eu.org/?ch={name}&date={date}",
             "logo": "https://epg.112114.eu.org/logo/{name}.png"
- },
-  {
-   "name": "💎【冰茶】【央视卫视直播 20250715】💎",
+},
+{
+   "name": "组播",
    "type": 0,
-      "url": "https://fy.188766.xyz/?ip=192.168.1.2&json=true",
-      "ua": "bingcha/0.1"
-  },
-  {
-            "name": "🍈📺ofiii直播20250702 【挂T台湾美国💔】",
+      "url": "https://tvv.tw/github.com/luoye20230624/hndxzb/blob/main/iptv_list.txt",
+      "ua": "okhttp/3.15",
+},
+{
+            "name": "OTTIPTV",
             "type": "0",
-            "pass": true,
-            "url": "https://raw.bgithub.xyz/cxr9912/cxr2025/refs/heads/main/Sub.m3u",
-            "ua": "xieanqishisb/0.0.1"
- },
-  {
+            "url": "https://mursor.ottiptv.cc/iptv.m3u?userid=7419177091&sign=055b0bb5bb22db03496bbcfdf6690e968c5b086a8827df1f9a7eb8d859f77f6e32999cc1b81f0b8e7a39a6578f458d27abf5e499fd06e16bfb78a81dd577172ad7a4df8794e250&auth_token=597c19702e66cf5dbab19b5a958230c4",
+            "ua": "okHttp/Mod-1.4.0.0"
+},
+{
             "name": "🌸LiTV[挂T台湾美国xg.52sw.top]🐟",
             "type": 0,
             "url": "http://xg.52sw.top/iptv/litv.php",
             "ua": "okhttp/3.15",
             "epg": "http://iptv.52sw.top:668/?ch={name}&date={date}"
-        },
+},
  {
             "name": "💔mytv123直播20250718 【挂T台湾美国】",
             "type": "0",
