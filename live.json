@@ -1,11 +1,12 @@
 {
 "lives": [
  {
-            "name": "🐟🐟🍄陈湘儒myTV🍄🐟🐟",
+            "name": "💔💎易发APP💎💔",
             "type": 0,
-            "url": "https://raw.bgithub.xyz/cxr9912/cxr2025/refs/heads/main/my.txt",
-            "ua": "xieanqishisb/0.0.1",
-            "epg": "http://iptv.52sw.top:668/?ch={name}&date={date}"
+            "url": "https://tvv.tw/github.com/fafa002/yf2025/blob/main/yiyifafa.txt",
+            "playerType": 1,
+            "epg": "https://epg.112114.eu.org/?ch={name}&date={date}",
+            "logo": "https://epg.112114.eu.org/logo/{name}.png"
  },
   {
    "name": "💎【冰茶】【央视卫视直播 20250715】💎",
