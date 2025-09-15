@@ -1,18 +1,26 @@
 {
 "lives": [
-  {
-            "name": "💔💎易发APP💎💔",
+ {
+            "name": "易发APP",
             "type": 0,
             "url": "https://tvv.tw/github.com/fafa002/yf2025/blob/main/yiyifafa.txt",
-            "playerType": 1,
-            "epg": "https://epg.112114.eu.org/?ch={name}&date={date}",
-            "logo": "https://epg.112114.eu.org/logo/{name}.png"
-  },
+           "epg":"http://epg.112114.xyz/?ch={name}&date={date}",
+            "logo":"https://epg.112114.xyz/logo/{name}.png"
+ },
   {
    "name": "组播",
    "type": 0,
       "url": "https://tvv.tw/github.com/luoye20230624/hndxzb/blob/main/iptv_list.txt",
-      "ua": "okhttp/3.15",
+      "ua": "okhttp/3.15"
+  },
+ {
+            "name": "📺⛲China TV @专用订阅链接",
+            "type": 0,
+            "url": "https://live.tv.darwinchow.com/sub/02RUMRYcOmd8rytOxh5ztNUdYfOV7n/txt",
+            "playerType": 2,
+            "ua": "okhttp/3.15",
+            "epg": "http://epg.112114.xyz/?ch={name}&date={date}",
+            "logo": "https://epg.112114.xyz/logo/{name}.png"
   },
   {
             "name": "OTTIPTV",
