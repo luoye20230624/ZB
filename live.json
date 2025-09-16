@@ -29,11 +29,12 @@
             "ua": "okHttp/Mod-1.4.0.0"
   },
   {
-            "name": "🌸LiTV[挂T台湾美国xg.52sw.top]🐟",
+            "name": "🌸💔【STV】订阅链接 20250822🐟",
             "type": 0,
-            "url": "http://xg.52sw.top/iptv/litv.php",
+            "url": "https://php.946985.xyz/stv.m3u",
             "ua": "okhttp/3.15",
-            "epg": "http://iptv.52sw.top:668/?ch={name}&date={date}"
+             "epg":"http://epg.112114.xyz/?ch={name}&date={date}",
+            "logo":"https://epg.112114.xyz/logo/{name}.png"
   },
  {
             "name": "💔mytv123直播20250718 【挂T台湾美国】",
