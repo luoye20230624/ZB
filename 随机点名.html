@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随机点名</title>
+</head>
+
+<body>
+    <button id="btn">点名</button>
+    <script>
+        let btn = document.getElementById("btn");
+        let arr = ["张三", "李四", "王五", "赵六", "钱七"];
+        btn.addEventListener("click", function () {
+            let index = Math.floor(Math.random() * arr.length);
+            console.log(arr[index]);
+        })
+    </script>
+</body>
+
+</html>
