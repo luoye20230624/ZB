@@ -1,0 +1,8 @@
+上海卫视4K,http://172.16.20.206/4k.php?id=sh4k
+江苏卫视4K,http://172.16.20.206/4k.php?id=js4k
+浙江卫视4K,http://172.16.20.206/4k.php?id=zj4k
+山东卫视4K,http://172.16.20.206/4k.php?id=sd4k
+湖南卫视4K,http://172.16.20.206/4k.php?id=hn4k
+广东卫视4K,http://172.16.20.206/4k.php?id=gd4k
+四川卫视4K,http://172.16.20.206/4k.php?id=sc4k
+深圳卫视4K,http://172.16.20.206/4k.php?id=sz4k
