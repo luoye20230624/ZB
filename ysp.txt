@@ -51,6 +51,7 @@ CCTV怀旧剧场,http://b.tvbox6.icu/tv/ysp.php?id=23
 云南卫视,http://b.tvbox6.icu/tv/ysp.php?id=60
 山西卫视,http://b.tvbox6.icu/tv/ysp.php?id=61
 青海卫视,http://b.tvbox6.icu/tv/ysp.php?id=62
-中国教育1台,http://b.tvbox6.icu/tv/ysp.php?id=63新疆卫视,http://b.tvbox6.icu/tv/ysp.php?id=64
+中国教育1台,http://b.tvbox6.icu/tv/ysp.php?id=63
+新疆卫视,http://b.tvbox6.icu/tv/ysp.php?id=64
 兵团卫视,http://b.tvbox6.icu/tv/ysp.php?id=65
 CGTN,http://b.tvbox6.icu/tv/ysp.php?id=66
