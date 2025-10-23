@@ -20,7 +20,8 @@ CCTV-4K超高清,http://b.tvbox6.icu/tv/ysp.php?id=19
 CCTV-8K超高清,http://b.tvbox6.icu/tv/ysp.php?id=20
 CCTV第一剧场,http://b.tvbox6.icu/tv/ysp.php?id=21
 CCTV风云剧场,http://b.tvbox6.icu/tv/ysp.php?id=22
-CCTV怀旧剧场,http://b.tvbox6.icu/tv/ysp.php?id=23北京卫视,http://b.tvbox6.icu/tv/ysp.php?id=33
+CCTV怀旧剧场,http://b.tvbox6.icu/tv/ysp.php?id=23
+北京卫视,http://b.tvbox6.icu/tv/ysp.php?id=33
 东方卫视,http://b.tvbox6.icu/tv/ysp.php?id=34
 江苏卫视,http://b.tvbox6.icu/tv/ysp.php?id=35
 浙江卫视,http://b.tvbox6.icu/tv/ysp.php?id=36
