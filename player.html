@@ -1,0 +1,1767 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>本地网页视频播放器_v4.4 </title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/flv.js@latest"></script>
+<style>
+.speed-transform-cards-row {display: flex; gap: var(--control-row-gap); align-items: stretch;}
+.speed-transform-card {min-width: 0;}
+.speed-card, .transform-card {flex: 0 0 auto;}
+.zoom-reset-card {flex: 1 1 auto; min-width: 100px;}
+.speed-card .control-row-content-wrapper,
+.transform-card .control-row-content-wrapper {flex-shrink: 0; flex-wrap: nowrap;}
+.speed-card .btn-group,
+.transform-card .btn-group {flex-wrap: wrap;}
+.zoom-reset-card .control-row-content-wrapper {flex-wrap: nowrap; align-items: center;}
+.zoom-reset-card .btn-secondary {flex-shrink: 0;}
+.play-controls-split-row {display: flex; gap: var(--control-row-gap); align-items: stretch;}
+.play-controls-split-card-main {flex-grow: 1; flex-basis: 0; min-width: 0;}
+.play-controls-split-card-secondary {flex-grow: 0; flex-shrink: 0;}
+.filter-row-container > span.control-group-label.accent-label {margin-right: -10px;}
+.btn-stop-custom {background-color: var(--danger); color: white; border-color: var(--danger);}
+.btn-stop-custom:hover {background-color: #d03838; border-color: #c03232;}
+.dark-mode .btn-stop-custom {}
+.dark-mode .btn-stop-custom:hover {}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+--primary: #4a6cf7; --primary-dark: #3a57d6; --text-primary: #1a202c;
+--text-secondary: #4a5568; --bg-light: #f8fafc; --bg-dark: #0f172a;
+--card-light: #fff; --card-dark: #1e293b; --border-light: #e2e8f0;
+--border-dark: #334155; --success: #10b981; --warning: #f59e0b;
+--danger: #ef4444; --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+--transition: all 0.3s ease;
+--base-font-size: 15px; --label-font-size: 15px; --btn-font-size: 15px;
+--input-font-size: 15px; --input-height: 38px; --btn-padding-y: 8px;
+--btn-padding-x: 15px; --control-row-gap: 15px; --control-item-gap: 18px;
+--main-slider-basis: 320px;
+--playlist-item-height: 40px; 
+--app-fixed-width: 1280px;
+--player-card-fixed-width: 996.05px;
+--player-card-fixed-height: 560.28px;
+--playlist-column-calculated-width: calc(var(--app-fixed-width) - var(--player-card-fixed-width) - 20px);
+}
+body {font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif; background: var(--bg-light); color: var(--text-primary); line-height: 1.6; min-height: 100vh; padding: 20px; transition: var(--transition); font-size: var(--base-font-size); display: flex; justify-content: center; align-items: flex-start; }
+body.dark-mode { background: var(--bg-dark); color: #e2e8f0; --text-primary: #e2e8f0; }
+.app-container { 
+width: var(--app-fixed-width); 
+margin: 0 auto;
+display: flex;
+flex-direction: column;
+}
+.top-section {
+display: flex;
+gap: 20px; 
+margin-bottom: 20px; 
+}
+.player-wrapper-card { 
+/* flex: 1; Removed as width/height are now fixed for desktop */
+width: var(--player-card-fixed-width);
+height: var(--player-card-fixed-height);
+min-width: var(--player-card-fixed-width); /* Prevent shrinking */
+display: flex; 
+flex-direction: column;
+background: var(--card-light); 
+border-radius: 12px; 
+box-shadow: var(--shadow); 
+overflow: hidden; 
+}
+.dark-mode .player-wrapper-card { background: var(--card-dark); }
+.playlist-column { 
+width: var(--playlist-column-calculated-width);
+flex-shrink: 0; 
+display: flex; 
+flex-direction: column;
+}
+.card { background: var(--card-light); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; transition: var(--transition); position: relative; }
+.dark-mode .card { background: var(--card-dark); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); }
+.player-wrapper-card.drag-over .upload-placeholder { border-color: var(--primary-dark); }
+.dark-mode .player-wrapper-card.drag-over .upload-placeholder { border-color: var(--primary); }
+#playlistCard.drag-over-playlist {
+border: 2px dashed var(--primary);
+box-shadow: 0 0 15px rgba(74, 108, 247, 0.3); 
+}
+.dark-mode #playlistCard.drag-over-playlist {
+border-color: var(--primary-dark);
+box-shadow: 0 0 15px rgba(58, 87, 214, 0.4); 
+}
+.video-wrapper {
+position: relative; 
+width: 100%; 
+height: 100%; /* Fill fixed height of player-wrapper-card */
+background: var(--bg-light); 
+transition: background-color 0.3s ease; 
+padding: 0; 
+border-radius: 12px 12px 0 0; /* This might be an issue if player-wrapper-card has fixed height and only one child */
+overflow: hidden; 
+display: flex; /* To center placeholder/video container if they don't fill */
+flex-direction: column; /* Stack placeholder/video-container */
+}
+.dark-mode .video-wrapper { background: var(--bg-dark); }
+.video-wrapper.video-active { background: #000; }
+.upload-placeholder {
+position: relative; 
+width: 100%;
+padding-top:56.25%
+margin: auto
+background-color: transparent; 
+border: 2px dashed var(--primary); 
+border-radius: 8px; 
+margin: auto;
+cursor: pointer; 
+transition: border-color 0.3s ease; 
+display: flex;
+flex-grow:1
+}
+.dark-mode .upload-placeholder { border-color: var(--primary-dark); }
+.upload-placeholder.hidden { display: none; }
+.upload-placeholder-content {
+position: absolute; 
+top: 0; left: 0; 
+width: 100%; height: 100%; 
+display: flex; flex-direction: column; 
+justify-content: center; align-items: center; 
+text-align: center; padding: 20px;
+}
+.upload-placeholder .upload-icon { font-size: 52px; color: var(--primary); margin-bottom: 18px; }
+.upload-placeholder h3 { font-size: 22px; color: var(--text-primary); margin-bottom: 10px; font-weight: 600; }
+.dark-mode .upload-placeholder h3 { color: var(--text-primary); }
+.upload-placeholder p { font-size: 17px; color: var(--text-secondary); margin-bottom: 8px; }
+.dark-mode .upload-placeholder p { color: #a0aec0; }
+.video-container { 
+position: relative; 
+width: 100%; /* Take full width of video-wrapper */
+padding-top: 56.25%; /* 16:9 Aspect Ratio, height relative to its own width */
+display: none; 
+overflow: hidden; 
+margin: auto; /* Center if video-wrapper is taller than content */
+flex-grow: 1; /* Allow it to take space if video-wrapper is flex */
+}
+.video-container.visible { display: block; }
+#videoPlayer {
+position: absolute; 
+top: 0; left: 0; 
+width: 100%; height: 100%; 
+outline: none; 
+transition: transform 0.3s ease, filter 0.3s ease; 
+object-fit: contain;
+}
+.control-panel-wrapper { 
+width: 100%; 
+background: var(--card-light); 
+border-radius: 12px; 
+box-shadow: var(--shadow); 
+overflow: hidden;
+margin-top: 0px; 
+}
+.dark-mode .control-panel-wrapper { background: var(--card-dark); }
+.control-panel { padding: 20px 25px; display: flex; flex-direction: column; gap: var(--control-row-gap); }
+.control-section-card {background: var(--card-light); border-radius: 8px; box-shadow: var(--shadow); padding: 18px 20px;}
+.dark-mode .control-section-card { background: var(--card-dark); }
+.control-section-label {font-size: 16px; font-weight: 500; color: var(--primary); white-space: nowrap; display: flex; align-items: center; margin-right: var(--control-item-gap); flex-shrink: 0;}
+.dark-mode .control-section-label { color: #60a5fa; }
+.control-section-label .fas {margin-right: 8px; font-size: 1.1em; color: var(--primary-dark);}
+.dark-mode .control-section-label .fas {color: var(--primary);}
+.accent-label {color: var(--primary) !important; display: inline-flex !important; align-items: center !important; font-weight: 500 !important;}
+.dark-mode .accent-label {color: var(--primary) !important;}
+.accent-label .fas {margin-right: 4px; font-size: 0.95em;}
+.control-row {display: flex; flex-wrap: nowrap; align-items: center;}
+.control-row > .control-section-label:first-child {margin-bottom: 0;}
+.control-row-content-wrapper {display: flex; flex-grow: 1; flex-shrink: 1; align-items: center; flex-wrap: nowrap; gap: var(--control-item-gap); min-width: 0;}
+.control-row-content-wrapper > .input-group { flex-grow: 1; min-width: 150px; margin-right: 0;}
+.control-row-content-wrapper > .subtitle-select-wrapper { flex-grow: 1; min-width: 100px; margin-right:0;}
+.control-row-content-wrapper > .slider-container { margin-right:0; }
+.control-row-content-wrapper > .btn-group-wrapper { margin-right:0; }
+.control-row-content-wrapper > .btn, .control-row-content-wrapper > .file-input-wrapper { margin-right:0; }
+.control-row-content-wrapper > *:last-child { margin-right: 0; }
+.control-row > *:not(:last-child) {margin-right: var(--control-item-gap);}
+.control-row > .input-group { flex-grow: 1; min-width: 200px; }
+.control-row > .subtitle-select-wrapper {flex-grow: 1; flex-shrink: 1; flex-basis: 100px; min-width: 120px;}
+.control-row > .slider-container.can-grow { flex-grow: 1; min-width: 150px; }
+.input-group { display: flex; gap: var(--control-item-gap); align-items: center; }
+.input-group input[type="text"] {flex: 1; padding: var(--btn-padding-y) 12px; border: 1px solid var(--border-light); border-radius: 6px; font-size: var(--input-font-size); background: transparent; color: var(--text-primary); transition: var(--transition); height: var(--input-height);}
+.dark-mode .input-group input[type="text"] { border-color: var(--border-dark); }
+.input-group input[type="text"]:focus { border-color: var(--primary); outline: none; }
+.btn-group-wrapper { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.btn-group-label, .slider-label, .control-group-label {font-size: var(--label-font-size); color: var(--text-secondary); font-weight: 500; white-space: nowrap; margin-right: 4px;}
+.dark-mode .btn-group-label, .dark-mode .slider-label, .dark-mode .control-group-label { color: #94a3b8; }
+.btn-group { display: flex; gap: 8px; flex-shrink: 0;}
+.btn {padding: var(--btn-padding-y) var(--btn-padding-x); border: 1px solid transparent; border-radius: 6px; font-size: var(--btn-font-size); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: var(--transition); white-space: nowrap; height: var(--input-height);}
+.btn i.fas { font-size: 1em; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-secondary { background: #e9ecef; color: var(--text-primary); border-color: #dee2e6;}
+.dark-mode .btn-secondary { background: #334155; border-color: #475569;}
+.btn-secondary:hover { background: #dee2e6; }
+.dark-mode .btn-secondary:hover { background: #475569; }
+.btn-success { background: var(--success); color: white; }
+.btn-success:hover { background: #059669; }
+.btn.active-preset, .btn.active-speed-btn { background-color: var(--primary-dark); color: white; border-color: var(--primary-dark); }
+.dark-mode .btn.active-preset, .dark-mode .btn.active-speed-btn { background-color: var(--primary); }
+.preset-btn { background: var(--card-light); color: var(--text-primary); border: 1px solid var(--border-light); }
+.dark-mode .preset-btn { background: var(--card-dark); color: var(--text-primary); border: 1px solid var(--border-dark); }
+.preset-btn:hover { background: #f1f3f5; }
+.dark-mode .preset-btn:hover { background: #2c3a4f; }
+.preset-btn.active-preset { background: var(--primary); color: white; border-color: var(--primary); }
+.dark-mode .preset-btn.active-preset { background: var(--primary-dark); }
+.subtitle-select-wrapper { display: flex; }
+.subtitle-select {width: 100%; padding: var(--btn-padding-y) 10px; padding-right: 25px; border: 1px solid var(--border-light); border-radius: 6px; background: transparent; color: var(--text-primary); font-size: var(--input-font-size); -webkit-appearance: none; -moz-appearance: none; appearance: none; height: var(--input-height); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234a5568'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 12px;}
+.dark-mode .subtitle-select {border-color: var(--border-dark); background-color: var(--card-dark); color: var(--text-primary); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");}
+.slider-container {display: flex; align-items: center; gap: 1px; flex-shrink: 1; min-width: 0;}
+.control-row.subtitle-row .control-row-content-wrapper .slider-container {flex-grow: 0; flex-shrink: 0; flex-basis: var(--main-slider-basis); min-width: 0;}
+.control-row.speed-transform-row .control-row-content-wrapper .slider-container,
+.control-row.speed-transform-row > .slider-container {flex-grow: 1; flex-shrink: 1; flex-basis: var(--main-slider-basis); min-width: 150px;}
+.control-row.subtitle-row .control-row-content-wrapper .slider-container input#subtitleSizeSlider,
+.control-row.speed-transform-row .control-row-content-wrapper .slider-container input#zoomSlider,
+.control-row.speed-transform-row > .slider-container input#zoomSlider {max-width: none; flex-grow: 1;}
+.slider-container label { font-size: var(--label-font-size); color: var(--text-secondary); min-width: auto; white-space: nowrap; margin-right: 4px;}
+.dark-mode .slider-container label { color: #94a3b8; }
+.slider-container input[type='range'] {flex-grow: 1; min-width: 60px; height: 8px; -webkit-appearance: none; appearance: none; background: var(--border-light); border-radius: 4px; cursor: pointer;}
+.dark-mode .slider-container input[type='range'] {background: var(--border-dark);}
+.slider-container input[type='range']::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 16px; height: 16px; background: var(--primary); border-radius: 50%; border: 2px solid var(--card-light); cursor: pointer; margin-top: -4px;}
+.dark-mode .slider-container input[type='range']::-webkit-slider-thumb {background: var(--primary-dark); border-color: var(--card-dark);}
+.slider-container input[type='range']::-moz-range-thumb {width: 16px; height: 16px; background: var(--primary); border-radius: 50%; border: 2px solid var(--card-light); cursor: pointer;}
+.dark-mode .slider-container input[type='range']::-moz-range-thumb {background: var(--primary-dark); border-color: var(--card-dark);}
+.value-display { font-size: var(--label-font-size); color: var(--text-primary); min-width: 35px; text-align: left; }
+.dark-mode .value-display { color: #e2e8f0; }
+input[type='number'].small-input {width: 42px; padding: var(--btn-padding-y) 5px; border: 1px solid var(--border-light); border-radius: 6px; font-size: var(--input-font-size); background: transparent; color: var(--text-primary); text-align: center; height: var(--input-height);}
+.dark-mode input[type='number'].small-input { border-color: var(--border-dark); }
+input[type='color'] {width: 32px; height: 32px; border: 1px solid var(--border-light); padding: 2px; background: none; cursor: pointer; border-radius: 6px; overflow: hidden; min-width: 32px;}
+.dark-mode input[type='color'] { border-color: var(--border-dark); }
+input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
+input[type='color']::-webkit-color-swatch { border: none; border-radius: 4px; }
+.file-input-wrapper { position: relative; overflow: hidden; display: inline-block; flex-shrink: 0; }
+.file-input-wrapper input[type=file] {position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer;}
+.subtitle-display {position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); width: auto; max-width: 90%; padding: 8px 16px; color: white; font-size: 20px; font-weight: bold; z-index: 10; border-radius: 4px; text-align: center; line-height: 1.4; pointer-events: none; display: none; background-color: rgba(0,0,0,0.5); text-shadow: 1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000;}
+.filter-row-container {display: flex; align-items: center; width: 100%; gap: var(--control-item-gap);}
+.filter-row-container > .btn-group-wrapper { flex-shrink: 0; }
+.filter-row-container > .control-group-label { flex-shrink: 0; white-space: nowrap;}
+.filter-row-container > .filter-sliders-group {display: flex; flex-grow: 1; flex-shrink: 1; gap: var(--control-item-gap); align-items: center; flex-wrap: nowrap; min-width: 0;}
+.filter-row-container > .filter-sliders-group > .slider-container {flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0;}
+.filter-row-container > .filter-sliders-group > .slider-container input[type="range"] {min-width: 40px; flex-grow: 1; width: 100%;}
+.filter-row-container > button.btn-secondary { flex-shrink: 0; }
+.audio-options-row {display: flex; gap: var(--control-row-gap); align-items: stretch;}
+.audio-track-card { flex: 0 0 auto; }
+.audio-preset-card { flex: 1 1 auto; min-width: 0; }
+.audio-track-card .control-row-content-wrapper,
+.audio-preset-card .control-row-content-wrapper { flex-grow: 1; }
+.audio-track-card .subtitle-select-wrapper { flex-grow: 1; min-width: 150px; }
+.audio-track-card .subtitle-select { width: 100%; }
+.audio-preset-card .audio-preset-group { display: flex; gap: 8px; flex-wrap: wrap; flex-grow: 1;}
+.audio-preset-btn {background: var(--card-light); color: var(--primary-dark); border: 1.5px solid var(--border-light); border-radius: 6px; padding: 7px 12px; font-size: 14px; font-weight: 500; transition: var(--transition); cursor: pointer; outline: none;}
+.audio-preset-btn .fa {margin-right: 4px;}
+.dark-mode .audio-preset-btn {background: var(--card-dark); color: var(--primary); border-color: var(--border-dark);}
+.audio-preset-btn:hover, .audio-preset-btn.active-audio-preset {background: var(--primary); color: #fff; border-color: var(--primary-dark);}
+.dark-mode .audio-preset-btn:hover, .dark-mode .audio-preset-btn.active-audio-preset {background: var(--primary-dark); color: #fff; border-color: var(--primary);}
+.filter-cards-row {display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; gap: var(--control-row-gap); align-items: stretch; width: 100%;}
+.filter-preset-card {flex-grow: 0; flex-shrink: 0; flex-basis: auto;}
+.filter-custom-card {flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0;}
+.filter-preset-card .control-row-content-wrapper {display: flex; flex-wrap: nowrap;}
+.filter-preset-card .btn-group-wrapper {flex-shrink: 0;}
+.filter-custom-card .control-row-content-wrapper.filter-custom-content-wrapper {display: flex; flex-wrap: nowrap; align-items: center; gap: 10px; width: 100%; overflow: hidden;}
+.filter-custom-card .filter-custom-content-wrapper > .control-group-label.accent-label {flex-shrink: 0; white-space: nowrap;}
+.filter-custom-card .filter-custom-content-wrapper > .filter-sliders-group {display: flex; flex-grow: 1; flex-shrink: 1; min-width: 0; gap: 24px; flex-wrap: nowrap; overflow: hidden;}
+.filter-custom-card .filter-custom-content-wrapper > .filter-sliders-group > .slider-container {flex-grow: 1; flex-shrink: 1; flex-basis: 0;}
+.filter-custom-card .filter-custom-content-wrapper > .btn-secondary {flex-shrink: 0;}
+/* Playlist Styles */
+#playlistCard { 
+padding: 15px; 
+display: flex; 
+flex-direction: column; 
+/* height is set by JS to match player-wrapper-card */
+}
+.playlist-header { 
+display: flex; 
+align-items: center; 
+margin-bottom: 10px; 
+padding-left: 11px; /* Matches item text indent (1px border + 10px item padding) */
+padding-right: 5px; 
+}
+.playlist-header-title { 
+font-size: 18px; 
+color: var(--primary); 
+margin: 0; 
+font-weight: 600; 
+display: flex; 
+align-items: center; 
+/* margin-right: auto; /* Pushes controls to the right */
+}
+.playlist-header-title .fas { margin-right: 8px; }
+.playlist-controls { 
+display: flex; 
+gap: 8px; 
+margin-left: auto; /* This will push controls to the far right */
+}
+.playlist-controls .btn-sm, .playlist-loop-controls .btn-sm { padding: 6px 10px; font-size: 13px; height: auto; }
+.playlist-items { list-style: none; padding: 0; margin: 0 0 10px 0; overflow-y: auto; flex-grow: 1; border: 1px solid var(--border-light); border-radius: 6px;}
+.dark-mode .playlist-items { border-color: var(--border-dark); }
+.playlist-item { display: flex; align-items: center; padding: 0 10px; height: var(--playlist-item-height); cursor: pointer; border-bottom: 1px solid var(--border-light); transition: background-color 0.2s; user-select: none;}
+.dark-mode .playlist-item { border-bottom-color: var(--border-dark); }
+.playlist-item:last-child { border-bottom: none; }
+.playlist-item:hover { background-color: #f0f0f0; }
+.dark-mode .playlist-item:hover { background-color: #2c3a4f; }
+.playlist-item.active-playlist-item { background-color: var(--primary); color: white; font-weight: 500;}
+.dark-mode .playlist-item.active-playlist-item { background-color: var(--primary-dark); }
+.playlist-item.active-playlist-item .playlist-item-title,
+.playlist-item.active-playlist-item .playlist-item-status i,
+.playlist-item.active-playlist-item .playlist-item-remove-btn { color: white; }
+.playlist-item-status { width: 20px; text-align: center; margin-right: 8px; font-size: 0.9em; flex-shrink: 0;}
+.playlist-item-status .fa-play { color: var(--primary); }
+.dark-mode .playlist-item-status .fa-play { color: var(--primary); }
+.playlist-item.active-playlist-item .playlist-item-status .fa-play { color: white; }
+.playlist-item-title { 
+flex-grow: 1; 
+white-space: nowrap; 
+overflow: hidden; 
+text-overflow: ellipsis; 
+font-size: 14px; 
+line-height: var(--playlist-item-height);
+}
+.playlist-item-remove-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 16px; padding: 5px; line-height: 1; flex-shrink: 0;}
+.dark-mode .playlist-item-remove-btn { color: #94a3b8; }
+.playlist-item-remove-btn:hover { color: var(--danger); }
+.playlist-item.dragging { opacity: 0.5; background: #e0e0e0; }
+.dark-mode .playlist-item.dragging { background: #3a4a5f; }
+.playlist-item.drop-target-above { border-top: 2px dashed var(--primary); } 
+.playlist-item.drop-target-below { border-bottom: 2px dashed var(--primary); } 
+.playlist-loop-controls { display: flex; align-items: center; gap: 8px; padding: 10px 5px 0px 5px; flex-wrap: wrap; border-top: 1px solid var(--border-light); margin-top: auto;}
+.dark-mode .playlist-loop-controls { border-top-color: var(--border-dark); }
+.playlist-loop-controls .control-group-label { margin-right: auto; }
+.loop-mode-btn.active-loop-mode { background-color: var(--primary); color: white; }
+.dark-mode .loop-mode-btn.active-loop-mode { background-color: var(--primary-dark); }
+.btn-danger { background-color: var(--danger); color: white; }
+.btn-danger:hover { background-color: #d03838; }
+@media (max-width: 992px) { 
+.app-container { width: 100%; padding: 10px; }
+.top-section {
+flex-direction: column;
+align-items: stretch; 
+}
+.player-wrapper-card {
+width: 100%; 
+height: auto; /* Allow height to be responsive based on 16:9 content */
+min-width: 0; /* Override fixed min-width for responsiveness */
+}
+.playlist-column {
+width: 100%; 
+margin-top: 20px;
+/* height: auto; Or a max-height if needed, JS will match player */
+}
+#playlistCard {
+/* height: auto; Or max-height, JS will match player's responsive height */
+}
+.control-panel-wrapper { margin-top: 20px; }
+}
+@media (max-width: 768px) {
+.control-row, .control-row-content-wrapper { flex-wrap: wrap; }
+.play-controls-split-row, .speed-transform-cards-row, .filter-cards-row, .audio-options-row { flex-direction: column;}
+.filter-custom-card .filter-custom-content-wrapper > .filter-sliders-group { flex-wrap: wrap; }
+.speed-card .btn-group, .transform-card .btn-group { justify-content: flex-start; }
+.control-panel { padding: 15px; }
+:root { --control-item-gap: 10px; --control-row-gap: 10px; }
+.upload-placeholder h3 { font-size: 18px;}
+.upload-placeholder p { font-size: 14px;}
+.upload-placeholder .upload-icon { font-size: 40px; margin-bottom: 10px;}
+}
+</style>
+</head>
+<body>
+<div class="app-container">
+<div class="top-section">
+<div class="player-wrapper-card" id="playerCard"> 
+<div class="video-wrapper">
+<div id="uploadPlaceholder" class="upload-placeholder">
+<div class="upload-placeholder-content">
+<i class="fas fa-cloud-upload-alt upload-icon"></i>
+<h3>上传本地视频</h3>
+<p>点击或拖放视频文件到此处 (可多选)</p>
+<p class="text-small">支持所有主流视频格式 (如 MP4, MKV, FLV, WebM 等)</p>
+</div>
+</div>
+<div class="video-container">
+<video id="videoPlayer" controls crossorigin="anonymous"></video>
+<div id="subtitleDisplay" class="subtitle-display" style="display: none;"></div>
+</div>
+</div>
+</div>
+<div class="playlist-column">
+<div class="card" id="playlistCard">
+<div class="playlist-header">
+<h3 class="playlist-header-title"><i class="fas fa-list-ul"></i>列表</h3>
+<div class="playlist-controls">
+<button id="addFilesToPlaylistBtn" class="btn btn-sm btn-secondary" title="添加文件到播放列表"><i class="fas fa-plus"></i> 添加</button>
+<input type="file" id="playlistFileInput" multiple accept="video/*,.mkv,.flv,.ts,.rmvb,.mov,.webm,.avi,.mpeg" style="display:none;" />
+<button id="clearPlaylistBtn" class="btn btn-sm btn-danger" title="清空播放列表"><i class="fas fa-trash"></i> 清空</button>
+</div>
+</div>
+<ul id="playlistUI" class="playlist-items">
+</ul>
+<div class="playlist-loop-controls">
+<span class="control-group-label accent-label"><i class="fas fa-redo"></i> 循环模式:</span>
+<div class="btn-group">
+<button class="btn btn-sm btn-secondary loop-mode-btn" data-mode="none" title="不循环"><i class="fas fa-arrow-right"></i></button>
+<button class="btn btn-sm btn-secondary loop-mode-btn" data-mode="single" title="单曲循环"><i class="fas fa-retweet"></i></button>
+<button class="btn btn-sm btn-secondary loop-mode-btn active-loop-mode" data-mode="list" title="列表循环"><i class="fas fa-random"></i></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="control-panel-wrapper"> 
+<div class="control-panel">
+<div class="play-controls-split-row">
+<div class="control-section-card play-controls-split-card-main">
+<div class="control-row">
+<span class="control-section-label"><i class="fas fa-play-circle"></i>播放控制</span>
+<div class="control-row-content-wrapper">
+<div class="input-group">
+<input type="text" id="videoURL" placeholder="输入视频URL" value="http://cloud.ruiboyun.net/vod/vod3/e0u83v08/index.m3u8"/>
+</div>
+<button class="btn btn-primary" id="playPauseUrlBtn"> <i class="fas fa-play"></i> <span class="btn-text">播放URL</span> </button>
+<button class="btn btn-secondary" onclick="downloadCurrentVideo()">
+<i class="fas fa-download"></i> 下载视频
+</button>
+</div>
+</div>
+</div>
+<div class="control-section-card play-controls-split-card-secondary">
+<div class="control-row">
+<div class="control-row-content-wrapper">
+<div class="file-input-wrapper">
+<button class="btn btn-success" id="uploadLocalVideoBtn"> <i class="fas fa-upload"></i> 本地视频 </button>
+<input type="file" id="localVideoFileInput" accept="video/*,.mkv,.flv,.ts,.rmvb,.mov,.webm,.avi,.mpeg" multiple/>
+</div>
+<button class="btn btn-stop-custom" onclick="stopPlayback()"> <i class="fas fa-stop"></i> 停止播放 </button>
+</div>
+</div>
+</div>
+</div>
+<div class="control-section-card">
+<div class="control-row subtitle-row">
+<span class="control-section-label"><i class="fas fa-closed-captioning"></i>字幕设置</span>
+<div class="control-row-content-wrapper">
+<div class="subtitle-select-wrapper">
+<select id="subtitleSelect" class="subtitle-select"> <option value="none">无字幕</option> </select>
+</div>
+<button class="btn btn-secondary" id="uploadSubtitleBtn"> <i class="fas fa-file-upload"></i> 上传字幕 </button>
+<button class="btn btn-secondary" id="toggleSubtitleBtn" onclick="toggleSubtitle()"> <i class="fas fa-eye-slash"></i> 显/隐字幕 </button>
+<div class="slider-container">
+<label for="subtitleSizeSlider" class="accent-label"><i class="fas fa-text-height"></i> 字幕大小</label>
+<input type="range" id="subtitleSizeSlider" min="12" max="48" value="20" />
+<input type="number" id="subtitleSizeValue" min="12" max="48" value="20" class="small-input"/>
+<span>px</span>
+</div>
+<label for="subtitleColorPicker" class="accent-label"><i class="fas fa-palette"></i> 字幕颜色</label>
+<input type="color" id="subtitleColorPicker" value="#F07400" title="点击色块可选择字幕颜色"/>
+</div>
+</div>
+</div>
+<div class="speed-transform-cards-row">
+<div class="control-section-card speed-transform-card speed-card">
+<div class="control-row">
+<div class="control-row-content-wrapper">
+<div class="btn-group-wrapper">
+<span class="btn-group-label accent-label"><i class="fas fa-forward"></i> 播放倍速</span>
+<div class="btn-group" id="speedBtnGroup">
+<button class="btn btn-secondary" data-speed="0.5" onclick="changeSpeed(0.5, this)"> <i class="fas fa-tachometer-alt"></i> 0.5x </button>
+<button class="btn btn-secondary active-speed-btn" data-speed="1" onclick="changeSpeed(1, this)"> <i class="fas fa-tachometer-alt"></i> 1x </button>
+<button class="btn btn-secondary" data-speed="1.5" onclick="changeSpeed(1.5, this)"> <i class="fas fa-tachometer-alt"></i> 1.5x </button>
+<button class="btn btn-secondary" data-speed="2" onclick="changeSpeed(2, this)"> <i class="fas fa-tachometer-alt"></i> 2x </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="control-section-card speed-transform-card transform-card">
+<div class="control-row">
+<div class="control-row-content-wrapper">
+<div class="btn-group-wrapper">
+<span class="btn-group-label accent-label"><i class="fas fa-sync-alt"></i> 画面变换</span>
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="rotateVideo()">旋转 90°</button>
+<button class="btn btn-secondary" onclick="flipVideo('x')">水平镜像</button>
+<button class="btn btn-secondary" onclick="flipVideo('y')">垂直镜像</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="control-section-card speed-transform-card zoom-reset-card">
+<div class="control-row speed-transform-row">
+<div class="control-row-content-wrapper">
+<div class="slider-container">
+<label for="zoomSlider" class="accent-label"><i class="fas fa-search-plus"></i> 画面缩放</label>
+<input type="range" id="zoomSlider" min="50" max="300" value="100" step="10"/>
+<span id="zoomValueDisplay" class="value-display">100%</span>
+</div>
+<button class="btn btn-secondary" onclick="resetTransforms()"><i class="fas fa-undo"></i> 重置</button>
+</div>
+</div>
+</div>
+</div>
+<div class="filter-cards-row">
+<div class="control-section-card filter-preset-card">
+<div class="control-row">
+<div class="control-row-content-wrapper">
+<div class="btn-group-wrapper">
+<span class="btn-group-label accent-label"><i class="fas fa-magic"></i> 滤镜预设</span>
+<div class="btn-group" id="filterPresetsContainer">
+<button class="btn preset-btn" onclick="applyFilterPreset('bright', this)">明亮</button>
+<button class="btn preset-btn" onclick="applyFilterPreset('cinema', this)">影院</button>
+<button class="btn preset-btn" onclick="applyFilterPreset('soft', this)">柔和</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="control-section-card filter-custom-card">
+<div class="control-row">
+<div class="control-row-content-wrapper filter-custom-content-wrapper">
+<span class="control-group-label accent-label"><i class="fas fa-sliders-h"></i> 自定调整</span>
+<div class="filter-sliders-group">
+<div class="slider-container">
+<label for="brightnessSlider" class="accent-label"><i class="fas fa-sun"></i> 亮度</label>
+<input type="range" id="brightnessSlider" min="0" max="200" value="100"/>
+<span id="brightnessValueDisplay" class="value-display">100</span>
+</div>
+<div class="slider-container">
+<label for="contrastSlider" class="accent-label"><i class="fas fa-adjust"></i> 对比度</label>
+<input type="range" id="contrastSlider" min="0" max="200" value="100"/>
+<span id="contrastValueDisplay" class="value-display">100</span>
+</div>
+<div class="slider-container">
+<label for="saturateSlider" class="accent-label"><i class="fas fa-tint"></i> 饱和度</label>
+<input type="range" id="saturateSlider" min="0" max="200" value="100"/>
+<span id="saturateValueDisplay" class="value-display">100</span>
+</div>
+<div class="slider-container">
+<label for="sharpenSlider" class="accent-label"><i class="fas fa-gem"></i> 锐化</label>
+<input type="range" id="sharpenSlider" min="0" max="10" step="1" value="0"/>
+<span id="sharpenValueDisplay" class="value-display">0</span>
+</div>
+</div>
+<button class="btn btn-secondary" onclick="resetFilters()"><i class="fas fa-undo"></i> 重置</button>
+</div>
+</div>
+</div>
+</div>
+<div class="audio-options-row">
+<div class="control-section-card audio-track-card">
+<div class="control-row">
+<span class="control-section-label"><i class="fas fa-list-ul"></i>音轨选择</span>
+<div class="control-row-content-wrapper">
+<div class="subtitle-select-wrapper">
+<select id="audioTrackSelect" class="subtitle-select" disabled>
+<option value="default">默认音轨</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+<div class="control-section-card audio-preset-card">
+<div class="control-row">
+<span class="control-section-label"><i class="fas fa-headphones-alt"></i>音效预设</span>
+<div class="control-row-content-wrapper">
+<div class="audio-preset-group" id="audioPresetGroup">
+<button class="audio-preset-btn active-audio-preset" data-preset="flat"><i class="fas fa-music"></i>正常</button>
+<button class="audio-preset-btn" data-preset="bass"><i class="fas fa-wave-square"></i>低音增强</button>
+<button class="audio-preset-btn" data-preset="vocal"><i class="fas fa-user-astronaut"></i>人声增强</button>
+<button class="audio-preset-btn" data-preset="treble"><i class="fas fa-signal"></i>高音增强</button>
+<button class="audio-preset-btn" data-preset="pop"><i class="fas fa-star"></i>流行</button>
+<button class="audio-preset-btn" data-preset="rock"><i class="fas fa-guitar"></i>摇滚</button>
+<button class="audio-preset-btn" data-preset="jazz"><i class="fas fa-drum"></i>爵士</button>
+<button class="audio-preset-btn" data-preset="dance"><i class="fas fa-compact-disc"></i>舞曲</button>
+<button class="audio-preset-btn" data-preset="live"><i class="fas fa-podcast"></i>现场</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+let hlsInstance=null;
+let flvPlayer=null;
+let currentVideoUrl=null; 
+let currentVideoIsLocal=false; 
+let currentVideoName = ''; 
+let currentSubtitleTracks=[];
+let subtitleActive=false;
+let currentSubtitleFileName=null;
+const defaultSubtitleSettings={fontSize:20,color:'#D9D919'};
+let currentSubtitleSettings=JSON.parse(localStorage.getItem('subtitleSettingsAVP'))||{...defaultSubtitleSettings};
+const transformSettings={rotate:0,scaleX:1,scaleY:1,zoom:100};
+const filterSettings={brightness:100,contrast:100,saturate:100,sharpen:0};
+const sharpenFiltersSVG=[];
+const filterPresets={
+bright:{b:130,c:110,s:120,sh:1},
+cinema:{b:95,c:120,s:110,sh:1},
+soft:{b:105,c:105,s:110,sh:0},
+};
+const audioPresets={
+flat:{name:'正常',gains:[0,0,0,0,0,0,0,0,0,0]},
+bass:{name:'低音增强',gains:[6,5,4,2,0,-1,-2,-2,-2,-3]},
+vocal:{name:'人声增强',gains:[-1,0,1,3,6,6,5,2,0,-2]},
+treble:{name:'高音增强',gains:[-2,-1,0,0,1,2,3,5,6,8]},
+pop:{name:'流行',gains:[-2,3,5,4,1,-1,1,2,4,3]},
+rock:{name:'摇滚',gains:[4,3,2,1,-1,0,3,7,8,7]},
+jazz:{name:'爵士',gains:[0,2,4,4,3,0,-1,0,1,3]},
+dance:{name:'舞曲',gains:[5,4,2,0,-2,0,2,4,5,4]},
+live:{name:'现场',gains:[2,1,0,1,2,2,1,0,1,2]},
+party:{name:'派对',gains:[6,5,3,1,-1,1,3,5,6,5]}
+};
+let audioContext;
+let sourceNode; 
+let eqNodes=[];
+let isAudioPipelineConnected = false; 
+let lastAudioPreset='flat';
+let playlist = []; 
+let currentPlaylistIndex = -1;
+let playlistLoopMode = 'list'; 
+let draggedPlaylistItemId = null;
+let video,videoPlayer,playPauseUrlBtn,playPauseIcon,playPauseText,
+uploadPlaceholder,videoContainer,localVideoFileInput,playerWrapperCard, 
+subtitleSizeSlider,subtitleSizeValue,subtitleColorPicker,subtitleDisplay,
+zoomSlider,zoomValueDisplay,
+brightnessSlider,brightnessValueDisplay,contrastSlider,contrastValueDisplay,
+saturateSlider,saturateValueDisplay,sharpenSlider,sharpenValueDisplay,
+audioTrackSelect, playlistUI, playlistCardElement, topSectionElement;
+document.addEventListener('DOMContentLoaded',function(){
+videoPlayer=document.getElementById('videoPlayer');
+video=videoPlayer; 
+playPauseUrlBtn=document.getElementById('playPauseUrlBtn');
+playPauseIcon=playPauseUrlBtn.querySelector('i');
+playPauseText=playPauseUrlBtn.querySelector('.btn-text');
+uploadPlaceholder=document.getElementById('uploadPlaceholder');
+videoContainer=document.querySelector('.video-container');
+localVideoFileInput=document.getElementById('localVideoFileInput');
+playerWrapperCard=document.getElementById('playerCard'); 
+subtitleSizeSlider=document.getElementById('subtitleSizeSlider');
+subtitleSizeValue=document.getElementById('subtitleSizeValue');
+subtitleColorPicker=document.getElementById('subtitleColorPicker');
+subtitleDisplay=document.getElementById('subtitleDisplay');
+zoomSlider=document.getElementById('zoomSlider');
+zoomValueDisplay=document.getElementById('zoomValueDisplay');
+brightnessSlider=document.getElementById('brightnessSlider');
+brightnessValueDisplay=document.getElementById('brightnessValueDisplay');
+contrastSlider=document.getElementById('contrastSlider');
+contrastValueDisplay=document.getElementById('contrastValueDisplay');
+saturateSlider=document.getElementById('saturateSlider');
+saturateValueDisplay=document.getElementById('saturateValueDisplay');
+sharpenSlider=document.getElementById('sharpenSlider');
+sharpenValueDisplay=document.getElementById('sharpenValueDisplay');
+audioTrackSelect = document.getElementById('audioTrackSelect');
+playlistUI = document.getElementById('playlistUI');
+playlistCardElement = document.getElementById('playlistCard'); 
+topSectionElement = document.querySelector('.top-section');
+uploadPlaceholder.classList.remove('hidden');
+videoContainer.classList.remove('visible');
+if(playerWrapperCard.querySelector('.video-wrapper')) { 
+playerWrapperCard.querySelector('.video-wrapper').classList.remove('video-active');
+}
+adjustPlaylistHeight(); 
+window.addEventListener('resize', adjustPlaylistHeight); 
+createSharpenSVGElements();
+setupPlayerEvents();
+setupSubtitleSettings();
+setupTransformAndFilterControls();
+loadAllSettings(); 
+setupDragAndDrop(playerWrapperCard,uploadPlaceholder); 
+setupPlaylistControls(); 
+setupAudioEqualizerPresets(); 
+uploadPlaceholder.addEventListener('click',(e)=>{
+if(e.target===uploadPlaceholder||e.target.closest('.upload-placeholder-content')){
+localVideoFileInput.click(); 
+}
+});
+playPauseUrlBtn.addEventListener('click', handlePlayUrlButtonClick);
+document.getElementById('videoURL').addEventListener('keydown',event=>{
+if(event.key==='Enter'){event.preventDefault();playPauseUrlBtn.click();}
+});
+video.addEventListener('play', handleVideoPlayEvent);
+video.addEventListener('pause', handleVideoPauseEvent);
+video.addEventListener('ended', handleVideoEndedEvent);
+video.addEventListener('loadedmetadata', ()=>{
+detectAudioTracks();
+adjustPlaylistHeight(); 
+});
+video.addEventListener('canplay',()=>{  });
+video.addEventListener('fullscreenchange',fixFullscreenTransforms);
+video.addEventListener('webkitfullscreenchange',fixFullscreenTransforms);
+video.addEventListener('mozfullscreenchange',fixFullscreenTransforms);
+video.addEventListener('msfullscreenchange',fixFullscreenTransforms);
+document.getElementById('uploadLocalVideoBtn').addEventListener('click',()=>localVideoFileInput.click());
+localVideoFileInput.addEventListener('change', function(event) {
+handleLocalFilesSelected(event.target.files);
+this.value = ''; 
+});
+document.getElementById('uploadSubtitleBtn').addEventListener('click',()=>uploadSubtitleFile());
+updateToggleSubtitleButtonIcon();
+audioTrackSelect.addEventListener('change', function(e) {
+if (!videoPlayer || !videoPlayer.audioTracks) return;
+let idx = this.value === "default" ? -1 : parseInt(this.value);
+if (videoPlayer.audioTracks && videoPlayer.audioTracks.length > 0 && !isNaN(idx) && idx >= 0) {
+for (let i = 0; i < videoPlayer.audioTracks.length; i++) {
+videoPlayer.audioTracks[i].enabled = (i == idx);
+}
+if (videoPlayer.paused) {
+videoPlayer.currentTime = Math.max(0.01, videoPlayer.currentTime); 
+videoPlayer.play().catch((err) => { console.warn("Error playing after track change:", err); });
+} else {
+let t = videoPlayer.currentTime;
+videoPlayer.currentTime = t + 0.001; 
+setTimeout(() => { videoPlayer.currentTime = t; }, 40); 
+}
+}
+});
+loadPlaylistState();
+renderPlaylist();
+updateLoopModeButtons();
+// Initial call after potential CSS changes affect offsetHeight
+adjustPlaylistHeight();
+});
+function adjustPlaylistHeight() {
+if (playerWrapperCard && playlistCardElement) {
+// playerWrapperCard height is fixed by CSS on desktop, 
+// or responsive (height: auto) on smaller screens.
+// playlistCardElement should always match playerWrapperCard's current rendered height.
+const playerCardCurrentHeight = playerWrapperCard.offsetHeight;
+playlistCardElement.style.height = `${playerCardCurrentHeight}px`;
+// The specific placeholder logic for height calculation might be less critical
+// if playerWrapperCard.offsetHeight already reflects the correct total height
+// including the placeholder when it's visible.
+// If placeholder makes playerWrapperCard taller than its 16:9 video content,
+// then matching playerWrapperCard.offsetHeight is still correct.
+}
+}
+function uuidv4() {
+return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+);
+}
+function handlePlayUrlButtonClick() {
+const urlInput = document.getElementById('videoURL');
+const url = urlInput.value.trim();
+if (!url) {
+alert('请输入有效的视频URL！');
+return;
+}
+if (currentPlaylistIndex !== -1 && playlist[currentPlaylistIndex] && (playlist[currentPlaylistIndex].url === url || playlist[currentPlaylistIndex].originalUrl === url)) {
+if (video.paused || video.ended) {
+video.play().catch(e => console.error("Error resuming playback:", e));
+} else {
+video.pause();
+}
+} else {
+let itemIndex = playlist.findIndex(item => item.url === url || item.originalUrl === url);
+if (itemIndex === -1) { 
+const newItem = { id: uuidv4(), name: url, url: url, originalUrl: url, type: 'url' };
+playlist.push(newItem);
+itemIndex = playlist.length - 1;
+renderPlaylist();
+savePlaylistState();
+}
+playFromPlaylist(itemIndex);
+}
+}
+function handleVideoPlayEvent() {
+uploadPlaceholder.classList.add('hidden');
+videoContainer.classList.add('visible');
+if(playerWrapperCard.querySelector('.video-wrapper')) {
+playerWrapperCard.querySelector('.video-wrapper').classList.add('video-active');
+}
+updateAudioChain();
+updatePlayPauseUrlButtonState();
+adjustPlaylistHeight(); 
+}
+function handleVideoPauseEvent() {
+updatePlayPauseUrlButtonState();
+}
+function handleVideoEndedEvent() {
+if (currentPlaylistIndex === -1) { 
+updatePlayPauseUrlButtonState(); 
+return;
+}
+if (playlistLoopMode === 'single') {
+playFromPlaylist(currentPlaylistIndex);
+} else if (playlistLoopMode === 'list') {
+const nextIndex = (currentPlaylistIndex + 1) % playlist.length;
+playFromPlaylist(nextIndex);
+} else { // 'none'
+if (currentPlaylistIndex < playlist.length - 1) {
+playFromPlaylist(currentPlaylistIndex + 1);
+} else {
+currentPlaylistIndex = -1; 
+clearPlayerForNewTrack(true); 
+renderPlaylist();
+updatePlayPauseUrlButtonState();
+}
+}
+}
+function updatePlayPauseUrlButtonState() {
+const urlInputValue = document.getElementById('videoURL').value.trim();
+let isUrlInputPlaying = false;
+if (currentPlaylistIndex !== -1 && playlist[currentPlaylistIndex]) {
+const currentItem = playlist[currentPlaylistIndex];
+isUrlInputPlaying = (currentItem.url === urlInputValue || currentItem.originalUrl === urlInputValue);
+} else if (video.src && video.src === urlInputValue) { 
+isUrlInputPlaying = true;
+}
+if (isUrlInputPlaying) {
+playPauseIcon.className = video.paused ? 'fas fa-play' : 'fas fa-pause';
+playPauseText.textContent = video.paused ? '播放URL' : '暂停URL';
+} else {
+playPauseIcon.className = 'fas fa-play';
+playPauseText.textContent = '播放URL';
+}
+}
+function detectAudioTracks() {
+if (!videoPlayer || !audioTrackSelect) return;
+audioTrackSelect.innerHTML = ''; 
+let defaultOption = document.createElement('option');
+defaultOption.value = "default";
+defaultOption.textContent = "默认音轨";
+audioTrackSelect.appendChild(defaultOption);
+let activeTrackFound = false;
+if (videoPlayer.audioTracks && videoPlayer.audioTracks.length > 0) {
+for (let i = 0; i < videoPlayer.audioTracks.length; i++) {
+let tr = videoPlayer.audioTracks[i];
+let lab = tr.label || ("音轨 " + (i + 1));
+let opt = document.createElement('option');
+opt.value = i.toString();
+opt.textContent = lab + (tr.language ? ` (${tr.language})` : '');
+audioTrackSelect.appendChild(opt);
+if (tr.enabled) {
+opt.selected = true;
+activeTrackFound = true;
+}
+}
+audioTrackSelect.disabled = videoPlayer.audioTracks.length <= 1;
+} else {
+audioTrackSelect.disabled = true;
+}
+if (!activeTrackFound) {
+defaultOption.selected = true; 
+}
+}
+function fixFullscreenTransforms(){
+setTimeout(()=>{
+let vid=videoPlayer;
+if(vid){
+vid.style.transform=
+`rotate(${transformSettings.rotate}deg) scaleX(${transformSettings.scaleX}) scaleY(${transformSettings.scaleY}) scale(${transformSettings.zoom/100})`;
+vid.style.filter=getCurrentVideoFilter();
+}
+},50);
+}
+function setupAudioEqualizerPresets(){
+const group=document.getElementById("audioPresetGroup");
+group.querySelectorAll('button.audio-preset-btn').forEach(btn=>{
+btn.addEventListener('click',function(){
+const presetKey = this.dataset.preset;
+applyAudioPreset(presetKey); 
+});
+});
+}
+function getAudioFrequencies(){ return[32,64,125,250,500,1000,2000,4000,8000,16000]; }
+function setupEqNodesInternal() {
+eqNodes = [];
+if (!audioContext) return;
+const freqs = getAudioFrequencies();
+for (let i = 0; i < freqs.length; i++) {
+const eq = audioContext.createBiquadFilter();
+eq.type = "peaking";
+eq.frequency.value = freqs[i];
+eq.Q.value = 1.1;
+eq.gain.value = 0; 
+eqNodes.push(eq);
+}
+}
+function initWebAudioInfrastructure() {
+let audioContextRecreated = false;
+if (!audioContext || audioContext.state === 'closed') {
+audioContext = new (window.AudioContext || window.webkitAudioContext)();
+sourceNode = null; eqNodes = []; audioContextRecreated = true; isAudioPipelineConnected = false; 
+}
+if (audioContext.state === 'suspended') {
+audioContext.resume().catch(e => console.warn("AudioContext resume failed", e));
+}
+if (audioContext && videoPlayer && (!sourceNode || audioContextRecreated)) {
+try {
+sourceNode = audioContext.createMediaElementSource(videoPlayer);
+} catch (e) { console.warn("Failed to create MediaElementSourceNode.", e); return; }
+}
+if (audioContext && (eqNodes.length === 0 || audioContextRecreated)) {
+setupEqNodesInternal();
+}
+}
+function disconnectAudioPipelinePhysical() {
+if (sourceNode) { try { sourceNode.disconnect(); } catch (e) {/*ignore*/ } }
+eqNodes.forEach(node => { try { node.disconnect(); } catch (e) {/*ignore*/ } });
+}
+function connectAudioPipeline() {
+if (!audioContext || !sourceNode ) return; 
+disconnectAudioPipelinePhysical(); 
+if (eqNodes.length > 0) {
+sourceNode.connect(eqNodes[0]);
+for (let i = 0; i < eqNodes.length - 1; i++) { eqNodes[i].connect(eqNodes[i + 1]); }
+eqNodes[eqNodes.length - 1].connect(audioContext.destination);
+} else { sourceNode.connect(audioContext.destination); }
+isAudioPipelineConnected = true;
+}
+function disconnectAudioPipeline() {
+if (!isAudioPipelineConnected) return;
+disconnectAudioPipelinePhysical();
+isAudioPipelineConnected = false;
+}
+function updateAudioChain() {
+if (videoPlayer.src && (videoPlayer.HAVE_METADATA <= videoPlayer.readyState)) {
+try {
+initWebAudioInfrastructure(); 
+if (sourceNode) { connectAudioPipeline(); }
+} catch (e) { console.warn("Error in updateAudioChain audio setup:", e); return; }
+}
+if (audioContext && sourceNode && audioContext.state === 'running' && isAudioPipelineConnected) {
+applyAudioPreset(lastAudioPreset);
+}
+}
+function applyAudioPreset(presetKey) {
+const preset = audioPresets[presetKey] || audioPresets.flat;
+if (!audioContext || !sourceNode || !isAudioPipelineConnected) {
+lastAudioPreset = presetKey; 
+const group = document.getElementById("audioPresetGroup");
+if (group) {
+group.querySelectorAll('button.audio-preset-btn').forEach(b => b.classList.remove('active-audio-preset'));
+const btnToActivate = group.querySelector(`button[data-preset="${presetKey}"]`);
+if (btnToActivate) btnToActivate.classList.add('active-audio-preset');
+}
+saveAllSettings(); return;
+}
+lastAudioPreset = presetKey;
+if (eqNodes.length !== preset.gains.length) {
+disconnectAudioPipeline(); setupEqNodesInternal(); connectAudioPipeline();    
+}
+for (let i = 0; i < preset.gains.length; i++) {
+if (eqNodes[i] && eqNodes[i].gain) {
+if (audioContext && audioContext.state === 'running') {
+eqNodes[i].gain.setValueAtTime(preset.gains[i], audioContext.currentTime);
+} else if (eqNodes[i] && eqNodes[i].gain) { eqNodes[i].gain.value = preset.gains[i]; }
+}
+}
+const group = document.getElementById("audioPresetGroup");
+if (group) {
+group.querySelectorAll('button.audio-preset-btn').forEach(b => b.classList.remove('active-audio-preset'));
+const btnToActivate = group.querySelector(`button[data-preset="${presetKey}"]`);
+if (btnToActivate) btnToActivate.classList.add('active-audio-preset');
+}
+saveAllSettings();
+}
+function setupDragAndDrop(playerCardTarget, placeholderTarget) { 
+const mainDropTargets = [playerCardTarget, placeholderTarget].filter(Boolean);
+function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+mainDropTargets.forEach(target => {
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => target.addEventListener(eventName, preventDefaults, false));
+target.addEventListener('dragenter', () => playerCardTarget.classList.add('drag-over'), false);
+target.addEventListener('dragover', () => playerCardTarget.classList.add('drag-over'), false);
+});
+playerCardTarget.addEventListener('dragleave', (e) => {
+if (!playerCardTarget.contains(e.relatedTarget)) { playerCardTarget.classList.remove('drag-over'); }
+}, false);
+const handleMainDrop = (e) => {
+playerCardTarget.classList.remove('drag-over');
+const files = e.dataTransfer.files;
+if (files && files.length > 0) {
+const videoFiles = [];
+let subtitleFile = null;
+for (const file of files) {
+const fileNameLower = file.name.toLowerCase();
+if (fileNameLower.endsWith('.srt') || fileNameLower.endsWith('.vtt')) {
+if (!subtitleFile) subtitleFile = file; 
+} else if (file.type.startsWith('video/') || ['.mkv','.flv','.ts','.rmvb','.mov','.webm','.avi','.mpeg'].some(ext => fileNameLower.endsWith(ext))) {
+videoFiles.push(file);
+}
+}
+if (videoFiles.length > 0) {
+handleLocalFilesSelected(videoFiles, videoFiles.length === 1); 
+}
+if (subtitleFile) { 
+const reader = new FileReader();
+reader.onload = function(event) {
+parseAndActivateSubtitle(event.target.result);
+currentSubtitleFileName = subtitleFile.name;
+updateSubtitleSelectLabel(subtitleFile.name);
+};
+reader.readAsText(subtitleFile);
+}
+if (videoFiles.length === 0 && !subtitleFile) {
+alert('不支持的文件类型。请拖放视频或字幕文件。');
+}
+}
+};
+mainDropTargets.forEach(target => target.addEventListener('drop', handleMainDrop, false));
+['dragenter', 'dragover', 'drop'].forEach(eventName => {
+document.body.addEventListener(eventName, preventDefaults, false);
+});
+}
+function setupPlayerEvents(){
+video.addEventListener('timeupdate',function(){
+if(subtitleActive&&currentSubtitleTracks.length>0){updateSubtitleDisplay(this.currentTime);}
+else{subtitleDisplay.textContent='';subtitleDisplay.style.display='none';}
+});
+video.addEventListener('error',(e)=>{
+console.error('Video Element Error Event:',e); console.dir(video.error);
+let message="视频播放发生错误。";
+if(video.error){
+switch(video.error.code){
+case video.error.MEDIA_ERR_ABORTED:message='视频播放已中止。';break;
+case video.error.MEDIA_ERR_NETWORK:message='网络错误导致视频下载失败。请检查网络连接和视频URL。';break;
+case video.error.MEDIA_ERR_DECODE:message='视频解码错误。视频文件可能已损坏或格式不完全支持。';break;
+case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:message='视频源格式不支持或无法加载。请确认视频URL有效且浏览器支持该格式。';break;
+default:message=`发生未知视频错误 (代码: ${video.error.code})。`;break;
+}
+}
+alert(message+"\n请检查浏览器控制台获取详细错误信息。");
+clearPlayerForNewTrack(true); 
+if(currentPlaylistIndex !== -1) { 
+currentPlaylistIndex = -1; 
+renderPlaylist();
+}
+});
+}
+function setupTransformAndFilterControls(){
+zoomSlider.addEventListener('input',()=>{
+transformSettings.zoom=parseInt(zoomSlider.value);
+zoomValueDisplay.textContent=`${transformSettings.zoom}%`;
+applyTransforms();saveAllSettings();
+});
+brightnessSlider.addEventListener('input',()=>{
+filterSettings.brightness=parseInt(brightnessSlider.value);
+brightnessValueDisplay.textContent=filterSettings.brightness;
+clearActiveFilterPreset();applyFilters();saveAllSettings();
+});
+contrastSlider.addEventListener('input',()=>{
+filterSettings.contrast=parseInt(contrastSlider.value);
+contrastValueDisplay.textContent=filterSettings.contrast;
+clearActiveFilterPreset();applyFilters();saveAllSettings();
+});
+saturateSlider.addEventListener('input',()=>{
+filterSettings.saturate=parseInt(saturateSlider.value);
+saturateValueDisplay.textContent=filterSettings.saturate;
+clearActiveFilterPreset();applyFilters();saveAllSettings();
+});
+sharpenSlider.addEventListener('input',()=>{
+filterSettings.sharpen=parseInt(sharpenSlider.value);
+sharpenValueDisplay.textContent=filterSettings.sharpen;
+clearActiveFilterPreset();applyFilters();saveAllSettings();
+});
+}
+function applyTransforms(){
+if(!videoPlayer)return;
+videoPlayer.style.transform=
+`rotate(${transformSettings.rotate}deg) scaleX(${transformSettings.scaleX}) scaleY(${transformSettings.scaleY}) scale(${transformSettings.zoom/100})`;
+}
+function getCurrentVideoFilter(){
+let filterStyle=`brightness(${filterSettings.brightness}%) contrast(${filterSettings.contrast}%) saturate(${filterSettings.saturate}%)`;
+if(filterSettings.sharpen>0&&filterSettings.sharpen<=10){
+filterStyle+=` url(#sharpen-filter-${filterSettings.sharpen})`;
+}
+return filterStyle;
+}
+function applyFilters(){
+if(!videoPlayer)return;
+videoPlayer.style.filter=getCurrentVideoFilter();
+}
+window.rotateVideo=function(){ transformSettings.rotate=(transformSettings.rotate+90)%360; applyTransforms();saveAllSettings(); }
+window.flipVideo=function(axis){
+if(axis==='x')transformSettings.scaleX*=-1;
+if(axis==='y')transformSettings.scaleY*=-1;
+applyTransforms();saveAllSettings();
+}
+window.resetTransforms=function(){
+transformSettings.rotate=0; transformSettings.scaleX=1; transformSettings.scaleY=1; transformSettings.zoom=100;
+zoomSlider.value=100; zoomValueDisplay.textContent='100%';
+applyTransforms();saveAllSettings();
+}
+window.applyFilterPreset=function(presetName,buttonElement){
+const preset=filterPresets[presetName];
+if(preset){
+filterSettings.brightness=preset.b; filterSettings.contrast=preset.c;
+filterSettings.saturate=preset.s; filterSettings.sharpen=preset.sh;
+updateFilterSlidersUI(); applyFilters(); clearActiveFilterPreset();
+if(buttonElement)buttonElement.classList.add('active-preset');
+saveAllSettings();
+}
+}
+function updateFilterSlidersUI(){
+brightnessSlider.value=filterSettings.brightness;brightnessValueDisplay.textContent=filterSettings.brightness;
+contrastSlider.value=filterSettings.contrast;contrastValueDisplay.textContent=filterSettings.contrast;
+saturateSlider.value=filterSettings.saturate;saturateValueDisplay.textContent=filterSettings.saturate;
+sharpenSlider.value=filterSettings.sharpen;sharpenValueDisplay.textContent=filterSettings.sharpen;
+}
+function clearActiveFilterPreset(){ document.querySelectorAll('#filterPresetsContainer .btn').forEach(btn=>btn.classList.remove('active-preset')); }
+window.resetFilters=function(){
+filterSettings.brightness=100;filterSettings.contrast=100;
+filterSettings.saturate=100;filterSettings.sharpen=0;
+updateFilterSlidersUI(); clearActiveFilterPreset(); applyFilters();saveAllSettings();
+}
+function getSharpenMatrix(level){
+if(level===0)return'';
+const baseK=5;const maxKBoost=8; const kValue=baseK+(maxKBoost*(level-1)/9);
+const edgeBase=-0.5;const maxEdgeBoost=-1.0; const edgeValue=edgeBase+(maxEdgeBoost*(level-1)/9);
+const k=kValue.toFixed(2);const e=edgeValue.toFixed(2);
+return`${e} ${e} ${e} ${e} ${k} ${e} ${e} ${e} ${e}`;
+}
+function createSharpenSVGElements(){
+const svgNS="http://www.w3.org/2000/svg";
+let svgContainer=document.getElementById('sharpen-svg-filters');
+if(!svgContainer){
+svgContainer=document.createElementNS(svgNS,'svg');
+svgContainer.setAttribute('id','sharpen-svg-filters');
+svgContainer.setAttribute('style','display:none;width:0;height:0;position:absolute;');
+document.body.appendChild(svgContainer); 
+}else{svgContainer.innerHTML='';}
+sharpenFiltersSVG.length=0;
+for(let i=1;i<=10;i++){
+const filterId=`sharpen-filter-${i}`; const matrixValue=getSharpenMatrix(i);
+sharpenFiltersSVG.push({id:filterId,label:`Sharpen ${i}`,matrix:matrixValue});
+const filterElement=document.createElementNS(svgNS,'filter'); filterElement.setAttribute('id',filterId);
+const convolveMatrix=document.createElementNS(svgNS,'feConvolveMatrix');
+convolveMatrix.setAttribute('order','3'); convolveMatrix.setAttribute('kernelMatrix',matrixValue);
+filterElement.appendChild(convolveMatrix); svgContainer.appendChild(filterElement);
+}
+}
+function setupSubtitleSettings(){
+subtitleSizeSlider.value=currentSubtitleSettings.fontSize; subtitleSizeValue.value=currentSubtitleSettings.fontSize;
+subtitleColorPicker.value=currentSubtitleSettings.color; applySubtitleSettings();
+subtitleSizeSlider.addEventListener('input',function(){
+currentSubtitleSettings.fontSize=this.value; subtitleSizeValue.value=this.value;
+applySubtitleSettings();saveAllSettings();
+});
+subtitleSizeValue.addEventListener('input',function(){
+let val=parseInt(this.value); if(isNaN(val)||val<12)val=12; if(val>48)val=48;
+this.value=val; currentSubtitleSettings.fontSize=val; subtitleSizeSlider.value=val;
+applySubtitleSettings();saveAllSettings();
+});
+subtitleColorPicker.addEventListener('input',function(){
+currentSubtitleSettings.color=this.value; applySubtitleSettings();saveAllSettings();
+});
+}
+function applySubtitleSettings(){
+subtitleDisplay.style.fontSize=currentSubtitleSettings.fontSize+'px';
+subtitleDisplay.style.color=currentSubtitleSettings.color;
+}
+function saveAllSettings(){
+const settings={
+subtitle:currentSubtitleSettings, transform:transformSettings, filter:filterSettings,
+playbackSpeed:videoPlayer? videoPlayer.playbackRate : 1.0, audioPreset:lastAudioPreset,
+};
+localStorage.setItem('avp_player_settings',JSON.stringify(settings));
+}
+function loadAllSettings(){
+const saved=localStorage.getItem('avp_player_settings');
+if(saved){
+const s=JSON.parse(saved);
+if(s.subtitle){ currentSubtitleSettings={...defaultSubtitleSettings,...s.subtitle}; setupSubtitleSettings(); }
+if(s.transform){ Object.assign(transformSettings,s.transform); zoomSlider.value=transformSettings.zoom; zoomValueDisplay.textContent=`${transformSettings.zoom}%`; applyTransforms(); }
+if(s.filter){
+Object.assign(filterSettings,s.filter); updateFilterSlidersUI(); applyFilters();
+let matchedPreset=false;
+for(const presetKey in filterPresets){
+const p=filterPresets[presetKey];
+if(p.b===filterSettings.brightness&&p.c===filterSettings.contrast&&p.s===filterSettings.saturate&&p.sh===filterSettings.sharpen){
+const presetButton=document.querySelector(`#filterPresetsContainer .btn[onclick*="'${presetKey}'"]`);
+if(presetButton)presetButton.classList.add('active-preset');
+matchedPreset=true; break;
+}
+}
+if(!matchedPreset)clearActiveFilterPreset();
+}
+if(s.playbackSpeed){
+const speedButton=document.querySelector(`#speedBtnGroup .btn[data-speed="${s.playbackSpeed}"]`);
+changeSpeed(s.playbackSpeed,speedButton); 
+}else{ changeSpeed(1.0,document.querySelector('#speedBtnGroup .btn[data-speed="1"]')); }
+lastAudioPreset = (s.audioPreset && audioPresets[s.audioPreset]) ? s.audioPreset : 'flat';
+} else { 
+resetTransforms(); resetFilters();
+changeSpeed(1.0,document.querySelector('#speedBtnGroup .btn[data-speed="1"]'));
+lastAudioPreset = 'flat'; 
+}
+const group = document.getElementById("audioPresetGroup");
+if (group) {
+group.querySelectorAll('button.audio-preset-btn').forEach(b => b.classList.remove('active-audio-preset'));
+const btnToActivate = group.querySelector(`button[data-preset="${lastAudioPreset}"]`);
+if (btnToActivate) btnToActivate.classList.add('active-audio-preset');
+}
+}
+function handleLocalFilesSelected(files, autoPlayFirst = false) {
+if (!files || files.length === 0) return;
+let firstNewItemIndex = playlist.length;
+for (let i = 0; i < files.length; i++) {
+const file = files[i];
+const fileURL = URL.createObjectURL(file);
+const newItem = { id: uuidv4(), name: file.name, url: fileURL, type: 'local', file: file };
+playlist.push(newItem);
+}
+renderPlaylist();
+savePlaylistState();
+if (autoPlayFirst && playlist.length > 0) {
+if (currentPlaylistIndex === -1 || files.length === 1) { 
+playFromPlaylist(firstNewItemIndex);
+}
+} else if (files.length > 0 && currentPlaylistIndex === -1) {
+}
+}
+function playMedia(url, name) { 
+clearPlayerForNewTrack(false); 
+currentVideoUrl = url; 
+currentVideoName = name;
+currentVideoIsLocal = url.startsWith('blob:');
+document.getElementById('videoURL').value = (currentVideoIsLocal ? `本地文件: ${name}` : (playlist[currentPlaylistIndex]?.originalUrl || url) );
+uploadPlaceholder.classList.add('hidden');
+videoContainer.classList.add('visible');
+if (playerWrapperCard.querySelector('.video-wrapper')) {
+playerWrapperCard.querySelector('.video-wrapper').classList.add('video-active');
+}
+adjustPlaylistHeight(); 
+updatePlayPauseUrlButtonState(); 
+applyTransforms();
+applyFilters();
+if (url.startsWith('blob:')) {
+video.src = url;
+video.play().catch((e) => { 
+console.error('Error playing local blob video:', e);
+alert(`播放本地视频 "${name}" 失败: ${e.message}`);
+clearPlayerForNewTrack(true); 
+});
+return;
+}
+if (url.indexOf('rtmp://') === 0) {
+alert('不支持RTMP流。');
+clearPlayerForNewTrack(true);
+return;
+}
+const extension = getFileExtension(url);
+if (Hls.isSupported() && (extension === 'm3u8' || url.includes('.m3u8'))) {
+hlsInstance = new Hls({ maxMaxBufferLength: 120 });
+hlsInstance.loadSource(url);
+hlsInstance.attachMedia(video);
+hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+video.play().catch(e => {
+console.error('HLS.js: video.play() error after manifest parsed:', e);
+alert('HLS播放启动失败: ' + e.message);
+clearPlayerForNewTrack(true);
+});
+detectAudioTracks();
+});
+hlsInstance.on(Hls.Events.AUDIO_TRACKS_UPDATED, detectAudioTracks);
+hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+console.error('HLS.js Error Event:', data);
+if (data.fatal) {
+let errorDetails = data.details || "未知HLS错误";
+if (data.type === Hls.ErrorTypes.NETWORK_ERROR) { errorDetails = `网络错误 (${data.details})`; }
+else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) { errorDetails = `媒体错误 (${data.details})`; }
+alert('HLS 播放错误: ' + errorDetails + "\n请检查网络和URL，或查看控制台。");
+clearPlayerForNewTrack(true);
+}
+});
+} else if (flvjs.isSupported() && (extension === 'flv' || url.includes('.flv'))) {
+flvPlayer = flvjs.createPlayer({ type: 'flv', url: url, isLive: url.includes('live') });
+flvPlayer.attachMediaElement(video);
+flvPlayer.load();
+video.play().catch(e => {
+console.error('FLV.js: video.play() error:', e);
+alert('FLV播放启动失败: ' + e.message);
+clearPlayerForNewTrack(true);
+});
+flvPlayer.on(flvjs.Events.ERROR, (type, detail) => {
+console.error('FLV.js Error:', type, detail);
+alert(`FLV 播放错误: ${detail}`);
+clearPlayerForNewTrack(true);
+});
+} else if (video.canPlayType('application/vnd.apple.mpegurl') && (extension === 'm3u8' || url.includes('.m3u8'))) {
+video.src = url; 
+video.play().catch(e => {
+console.error('Native HLS: video.play() error:', e);
+alert('原生HLS播放启动失败: ' + e.message);
+clearPlayerForNewTrack(true);
+});
+} else { 
+video.src = url;
+video.play().catch((e) => {
+console.error('Native HTML5 video.play() error:', e);
+alert('视频播放失败，浏览器不支持此格式、链接无效或网络问题: ' + e.message);
+clearPlayerForNewTrack(true);
+});
+}
+}
+function clearPlayerForNewTrack(showPlaceholder = false) {
+video.pause();
+if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+if (flvPlayer) { flvPlayer.destroy(); flvPlayer = null; }
+if (showPlaceholder) {
+video.removeAttribute('src');
+video.load(); 
+video.currentTime = 0;
+disconnectAudioPipeline(); 
+removeSubtitle();
+currentVideoUrl = null; 
+currentVideoName = '';
+currentVideoIsLocal = false;
+if(playerWrapperCard.querySelector('.video-wrapper')){
+playerWrapperCard.querySelector('.video-wrapper').classList.remove('video-active');
+}
+videoContainer.classList.remove('visible');
+uploadPlaceholder.classList.remove('hidden');
+adjustPlaylistHeight(); 
+if (audioTrackSelect) {
+audioTrackSelect.innerHTML = '<option value="default">默认音轨</option>';
+audioTrackSelect.disabled = true;
+}
+} else {
+removeSubtitle();
+}
+updatePlayPauseUrlButtonState(); 
+}
+window.stopPlayback = function() {
+clearPlayerForNewTrack(true); 
+currentPlaylistIndex = -1; 
+renderPlaylist(); 
+savePlaylistState();
+}
+function getFileExtension(url){return url.split(/[#?]/)[0].split('.').pop().trim().toLowerCase();}
+function parseTime(timeStr){
+const parts=timeStr.split(':');let seconds=0;
+if(parts.length===3){
+seconds+=parseFloat(parts[0])*3600;seconds+=parseFloat(parts[1])*60;seconds+=parseFloat(parts[2].replace(',','.'));
+}else if(parts.length===2){
+seconds+=parseFloat(parts[0])*60;seconds+=parseFloat(parts[1].replace(',','.'));
+}return seconds;
+}
+function parseSrtOrVtt(content){
+const lines=content.split(/\r?\n/);const cues=[];let i=0;
+const isVTT=lines[0].toUpperCase().startsWith('WEBVTT');if(isVTT)i=1;
+while(i<lines.length){
+if(isVTT&&lines[i].trim()===''){i++;continue;}
+if(!isVTT&&lines[i].match(/^\d+$/))i++;
+const timeLine=lines[i];if(!timeLine||timeLine.indexOf('-->')===-1){i++;continue;}i++;
+const timeParts=timeLine.split('-->');if(timeParts.length!==2)continue;
+const startTime=parseTime(timeParts[0].trim());const endTime=parseTime(timeParts[1].trim().split(' ')[0]);
+let text='';while(i<lines.length&&lines[i].trim()!==''){text+=(text?'\n':'')+lines[i].trim();i++;}
+cues.push({start:startTime,end:endTime,text:text});i++;
+}return cues;
+}
+function uploadSubtitleFile(){
+const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='.srt,.vtt';
+fileInput.onchange=e=>{
+const file=e.target.files[0];if(file){
+const reader=new FileReader();
+reader.onload=function(event){
+parseAndActivateSubtitle(event.target.result);currentSubtitleFileName=file.name;
+updateSubtitleSelectLabel(file.name);
+};reader.readAsText(file);
+}
+};fileInput.click();
+}
+function updateSubtitleSelectLabel(fileName){
+const select=document.getElementById('subtitleSelect');
+const existingOption=select.querySelector('option[value="loaded"]');if(existingOption)existingOption.remove();
+const option=document.createElement('option');option.value='loaded';
+option.textContent=fileName.length>20?fileName.substring(0,17)+'...':fileName;
+option.selected=true;select.appendChild(option);subtitleActive=true;
+updateToggleSubtitleButtonIcon();
+}
+function parseAndActivateSubtitle(content){
+currentSubtitleTracks=parseSrtOrVtt(content);subtitleActive=true;updateToggleSubtitleButtonIcon();
+if(video.currentTime>0){updateSubtitleDisplay(video.currentTime);}
+}
+function updateSubtitleDisplay(currentTime){
+const activeCue=currentSubtitleTracks.find(cue=>currentTime>=cue.start&&currentTime<=cue.end);
+if(activeCue&&subtitleActive){
+subtitleDisplay.innerHTML=activeCue.text.replace(/\n/g,'<br>');
+subtitleDisplay.style.display='block';
+}else{
+subtitleDisplay.textContent='';subtitleDisplay.style.display='none';
+}
+}
+window.toggleSubtitle=function(){
+subtitleActive=!subtitleActive;updateToggleSubtitleButtonIcon();
+if(!subtitleActive){subtitleDisplay.style.display='none';}
+else if(currentSubtitleTracks.length>0){updateSubtitleDisplay(video.currentTime);}
+}
+function updateToggleSubtitleButtonIcon(){
+const icon=document.getElementById('toggleSubtitleBtn').querySelector('i');
+icon.className=subtitleActive?'fas fa-eye':'fas fa-eye-slash';
+}
+function removeSubtitle(){
+currentSubtitleTracks=[];subtitleActive=false;subtitleDisplay.style.display='none';
+const select=document.getElementById('subtitleSelect');
+const loadedOption=select.querySelector('option[value="loaded"]');if(loadedOption)loadedOption.remove();
+select.value='none';updateToggleSubtitleButtonIcon();
+}
+window.changeSpeed=function(speed,buttonElement){
+if (videoPlayer) videoPlayer.playbackRate=speed;
+document.querySelectorAll('#speedBtnGroup .btn').forEach(btn=>btn.classList.remove('active-speed-btn'));
+if(buttonElement)buttonElement.classList.add('active-speed-btn');
+saveAllSettings();
+}
+function updateDownloadStatus(statusType,message){ console.log(`Download Status [${statusType}]: ${message}`);}
+async function downloadCurrentVideo(){
+const urlToDownload=currentVideoUrl; 
+if(!urlToDownload){ alert('没有正在播放或已加载的视频可以下载。'); updateDownloadStatus('error','No video URL to download.'); return; }
+if(urlToDownload.startsWith('blob:')){ alert('当前播放的是本地文件，通常不需要通过此方式下载。\n如果需要保存已应用变换/滤镜的版本，该功能暂不支持。'); updateDownloadStatus('info','Local blob URL, download skipped.'); return;}
+updateDownloadStatus('loading','正在准备下载...');
+try{
+const extension=getFileExtension(urlToDownload);
+let filename = currentVideoName || `video_${Date.now()}`; 
+if (!filename.includes('.')) filename += `.${extension || 'mp4'}`;
+if(extension==='m3u8'||urlToDownload.includes('.m3u8')){ await downloadHLS(urlToDownload,filename); }
+else{ await downloadDirect(urlToDownload,filename); }
+updateDownloadStatus('success','下载准备完成，浏览器将开始下载。');
+}catch(error){
+console.error('下载失败:',error);
+updateDownloadStatus('error',`下载失败: ${error.message||'未知错误'}`);
+alert(`下载失败: ${error.message||'未知错误'}\n请检查控制台获取更多信息。`);
+}
+}
+async function downloadDirect(url,filename){
+updateDownloadStatus('loading',`正在获取 ${filename}...`);
+const a=document.createElement('a');
+try{
+const response=await fetch(url);
+if(!response.ok)throw new Error(`HTTP错误! 状态: ${response.status}`);
+const blob=await response.blob(); const objectUrl=URL.createObjectURL(blob);
+a.href=objectUrl; a.download=filename; document.body.appendChild(a); a.click();
+setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(objectUrl); },100);
+}catch(fetchError){
+console.warn("直接获取失败，尝试简单的锚点下载 (可能会被CORS阻止):",fetchError);
+a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+setTimeout(()=>{ document.body.removeChild(a); },100);
+}
+}
+async function downloadHLS(m3u8Url,baseFilename){
+updateDownloadStatus('loading','正在下载M3U8播放列表...');
+let response;
+try{ response=await fetch(m3u8Url); }
+catch(networkError){ throw new Error(`获取M3U8清单失败 (网络错误): ${networkError.message}`);}
+if(!response.ok){ throw new Error(`获取M3U8清单失败: ${response.statusText} (状态码: ${response.status})`);}
+const manifestText=await response.text(); const lines = manifestText.split(/\r?\n/);
+const segmentUrls=[]; const baseUrl=m3u8Url.substring(0,m3u8Url.lastIndexOf('/')+1);
+for(const line of lines){
+if(line.startsWith('#')||line.trim()===''){ continue; }
+if(line.endsWith('.m3u8')){
+const variantUrl=new URL(line,baseUrl).href;
+console.log(`发现变体M3U8 (Master Playlist): ${variantUrl}. 尝试下载此变体。`);
+return downloadHLS(variantUrl,baseFilename.replace(/\.m3u8$/i,'')+"_"+line.replace(/\.m3u8$/i,''));
+}
+try{ const segmentUrl=new URL(line,baseUrl).href; segmentUrls.push(segmentUrl); }
+catch(e){ console.warn(`跳过无效的片段URL: ${line}`,e); }
+}
+if(segmentUrls.length===0){ throw new Error('在M3U8清单中未找到视频片段。');}
+const segmentData=[]; let totalSegments=segmentUrls.length;
+for(let i=0;i<totalSegments;i++){
+const segmentUrl=segmentUrls[i];
+updateDownloadStatus('loading',`正在下载片段 ${i+1}/${totalSegments}...`);
+try{
+const segmentResponse=await fetch(segmentUrl);
+if(!segmentResponse.ok){ console.warn(`获取片段 ${i+1} (${segmentUrl}) 失败: ${segmentResponse.statusText}. 跳过。`); continue; }
+const buffer=await segmentResponse.arrayBuffer(); segmentData.push(new Uint8Array(buffer));
+}catch(segError){ console.warn(`获取片段 ${i+1} (${segmentUrl}) 时发生错误: ${segError.message}. 跳过。`); continue; }
+}
+if(segmentData.length===0){ throw new Error('所有片段下载失败。');}
+updateDownloadStatus('loading','正在合并视频片段...');
+const totalLength=segmentData.reduce((acc,val)=>acc+val.length,0);
+const concatenatedBuffer=new Uint8Array(totalLength); let offset=0;
+for(const segment of segmentData){ concatenatedBuffer.set(segment,offset); offset+=segment.length; }
+const blob=new Blob([concatenatedBuffer],{type:'video/mp2t'});
+const downloadLink=document.createElement('a');
+downloadLink.href=URL.createObjectURL(blob); downloadLink.download=`${baseFilename.replace(/\.m3u8$/i,'')}.ts`;
+document.body.appendChild(downloadLink); downloadLink.click();
+setTimeout(()=>{ document.body.removeChild(downloadLink); URL.revokeObjectURL(downloadLink.href); },100);
+}
+// Playlist Functions
+function setupPlaylistControls() {
+document.getElementById('addFilesToPlaylistBtn').addEventListener('click', () => {
+document.getElementById('playlistFileInput').click();
+});
+document.getElementById('playlistFileInput').addEventListener('change', function(event) {
+handleLocalFilesSelected(event.target.files, playlist.length === 0 && event.target.files.length === 1);
+this.value = ''; 
+});
+document.getElementById('clearPlaylistBtn').addEventListener('click', () => {
+playlist.forEach(item => {
+if (item.type === 'local' && item.url.startsWith('blob:')) {
+URL.revokeObjectURL(item.url);
+}
+});
+playlist = [];
+currentPlaylistIndex = -1;
+stopPlayback(); 
+renderPlaylist();
+savePlaylistState();
+});
+document.querySelectorAll('.loop-mode-btn').forEach(btn => {
+btn.addEventListener('click', function() {
+playlistLoopMode = this.dataset.mode;
+updateLoopModeButtons();
+savePlaylistState();
+});
+});
+playlistUI.addEventListener('dragstart', (e) => {
+if (e.target.classList.contains('playlist-item')) {
+draggedPlaylistItemId = e.target.dataset.id;
+e.target.classList.add('dragging');
+}
+});
+playlistUI.addEventListener('dragend', (e) => {
+if (e.target.classList.contains('playlist-item')) {
+e.target.classList.remove('dragging');
+document.querySelectorAll('.playlist-item.drop-target-above, .playlist-item.drop-target-below').forEach(el => {
+el.classList.remove('drop-target-above', 'drop-target-below');
+});
+draggedPlaylistItemId = null;
+}
+});
+playlistUI.addEventListener('dragover', (e) => {
+e.preventDefault(); 
+const targetItem = e.target.closest('.playlist-item');
+if (targetItem && targetItem.dataset.id !== draggedPlaylistItemId) {
+document.querySelectorAll('.playlist-item.drop-target-above, .playlist-item.drop-target-below').forEach(el => {
+el.classList.remove('drop-target-above', 'drop-target-below');
+});
+const rect = targetItem.getBoundingClientRect();
+const offsetY = e.clientY - rect.top;
+if (offsetY < rect.height / 2) {
+targetItem.classList.add('drop-target-above');
+} else {
+targetItem.classList.add('drop-target-below');
+}
+}
+});
+playlistUI.addEventListener('dragleave', (e) => {
+const targetItem = e.target.closest('.playlist-item');
+if (targetItem) {
+targetItem.classList.remove('drop-target-above', 'drop-target-below');
+}
+});
+playlistUI.addEventListener('drop', (e) => {
+e.preventDefault();
+document.querySelectorAll('.playlist-item.drop-target-above, .playlist-item.drop-target-below').forEach(el => {
+el.classList.remove('drop-target-above', 'drop-target-below');
+});
+if (!draggedPlaylistItemId) return;
+const targetItemElement = e.target.closest('.playlist-item');
+const draggedItemIndex = playlist.findIndex(item => item.id === draggedPlaylistItemId);
+if (draggedItemIndex === -1) return;
+const draggedItem = playlist[draggedItemIndex];
+playlist.splice(draggedItemIndex, 1); 
+let targetIndex;
+if (targetItemElement) {
+const targetItemId = targetItemElement.dataset.id;
+targetIndex = playlist.findIndex(item => item.id === targetItemId);
+const rect = targetItemElement.getBoundingClientRect();
+const offsetY = e.clientY - rect.top;
+if (offsetY < rect.height / 2) {
+playlist.splice(targetIndex, 0, draggedItem);
+} else {
+playlist.splice(targetIndex + 1, 0, draggedItem);
+}
+} else {
+playlist.push(draggedItem);
+}
+const currentPlayingItemOriginalId = (currentPlaylistIndex !== -1 && playlist[currentPlaylistIndex]) ? playlist[currentPlaylistIndex].id : null;
+if (currentPlayingItemOriginalId) {
+const newCurrentPlayingIndex = playlist.findIndex(item => item.id === currentPlayingItemOriginalId);
+if (newCurrentPlayingIndex !== -1) {
+currentPlaylistIndex = newCurrentPlayingIndex;
+} else { 
+currentPlaylistIndex = playlist.findIndex(item => item.id === draggedItem.id); 
+}
+} else { 
+currentPlaylistIndex = -1;
+}
+renderPlaylist();
+savePlaylistState();
+draggedPlaylistItemId = null;
+});
+playlistCardElement.addEventListener('dragover', (e) => {
+e.preventDefault(); 
+e.stopPropagation();
+playlistCardElement.classList.add('drag-over-playlist'); 
+});
+playlistCardElement.addEventListener('dragleave', (e) => {
+if (!playlistCardElement.contains(e.relatedTarget)) {
+playlistCardElement.classList.remove('drag-over-playlist');
+}
+});
+playlistCardElement.addEventListener('drop', (e) => {
+e.preventDefault();
+e.stopPropagation();
+playlistCardElement.classList.remove('drag-over-playlist');
+const files = e.dataTransfer.files;
+if (files && files.length > 0) {
+const videoFiles = Array.from(files).filter(file => {
+const fileNameLower = file.name.toLowerCase();
+return file.type.startsWith('video/') || ['.mkv','.flv','.ts','.rmvb','.mov','.webm','.avi','.mpeg'].some(ext => fileNameLower.endsWith(ext));
+});
+if (videoFiles.length > 0) {
+handleLocalFilesSelected(videoFiles, playlist.length === 0 && videoFiles.length === 1);
+} else {
+alert('请拖放有效的视频文件到播放列表。');
+}
+}
+});
+}
+function getTruncatedFileName(name, displayUnits = 20) { 
+if (!name) return '';
+let currentUnits = 0;
+let truncatedName = "";
+for (let i = 0; i < name.length; i++) {
+const char = name[i];
+const charUnits = (char.match(/[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uffef\u4e00-\u9faf\u3400-\u4dbf]/)) ? 2 : 1;
+if (currentUnits + charUnits <= displayUnits) {
+truncatedName += char;
+currentUnits += charUnits;
+} else {
+truncatedName += "...";
+break;
+}
+}
+return truncatedName;
+}
+function renderPlaylist() {
+playlistUI.innerHTML = '';
+playlist.forEach((item, index) => {
+const li = document.createElement('li');
+li.className = 'playlist-item';
+li.dataset.index = index;
+li.dataset.id = item.id;
+li.draggable = true;
+const statusSpan = document.createElement('span');
+statusSpan.className = 'playlist-item-status';
+if (index === currentPlaylistIndex) {
+li.classList.add('active-playlist-item');
+statusSpan.innerHTML = '<i class="fas fa-play"></i>';
+}
+const titleSpan = document.createElement('span');
+titleSpan.className = 'playlist-item-title';
+titleSpan.textContent = getTruncatedFileName(item.name, 20); 
+titleSpan.title = item.name; 
+const removeBtn = document.createElement('button');
+removeBtn.className = 'playlist-item-remove-btn';
+removeBtn.innerHTML = '&times;';
+removeBtn.title = '从列表移除';
+removeBtn.onclick = (e) => {
+e.stopPropagation();
+removeItemFromPlaylist(item.id);
+};
+li.appendChild(statusSpan);
+li.appendChild(titleSpan);
+li.appendChild(removeBtn);
+li.onclick = () => {
+playFromPlaylist(index);
+};
+playlistUI.appendChild(li);
+});
+}
+function removeItemFromPlaylist(itemId) {
+const itemIndex = playlist.findIndex(item => item.id === itemId);
+if (itemIndex === -1) return;
+const removedItem = playlist.splice(itemIndex, 1)[0];
+if (removedItem.type === 'local' && removedItem.url.startsWith('blob:')) {
+URL.revokeObjectURL(removedItem.url); 
+}
+if (itemIndex === currentPlaylistIndex) {
+stopPlayback(); 
+if (playlist.length > 0) {
+if (playlistLoopMode !== 'none') { 
+const nextPlayIndex = itemIndex % playlist.length; 
+playFromPlaylist(nextPlayIndex);
+}
+}
+} else if (itemIndex < currentPlaylistIndex) {
+currentPlaylistIndex--; 
+}
+renderPlaylist();
+savePlaylistState();
+}
+function playFromPlaylist(index) {
+if (index < 0 || index >= playlist.length) {
+console.warn("Invalid playlist index:", index);
+if (playlist.length > 0) { 
+index = 0;
+} else { 
+stopPlayback();
+return;
+}
+}
+currentPlaylistIndex = index;
+const item = playlist[index];
+playMedia(item.url, item.name); 
+renderPlaylist(); 
+savePlaylistState(); 
+}
+function updateLoopModeButtons() {
+document.querySelectorAll('.loop-mode-btn').forEach(btn => {
+btn.classList.toggle('active-loop-mode', btn.dataset.mode === playlistLoopMode);
+});
+}
+function savePlaylistState() {
+const playlistToSave = playlist.map(item => {
+if (item.type === 'url') {
+return {
+id: item.id,
+name: item.name,
+url: item.originalUrl || item.url, 
+type: 'url'
+};
+}
+return null; 
+}).filter(item => item !== null); 
+let savedCurrentIndex = currentPlaylistIndex;
+if (currentPlaylistIndex !== -1 && playlist[currentPlaylistIndex] && playlist[currentPlaylistIndex].type === 'local') {
+savedCurrentIndex = -1; 
+} else if (currentPlaylistIndex !== -1 && playlist[currentPlaylistIndex]) {
+const currentItemId = playlist[currentPlaylistIndex].id;
+savedCurrentIndex = playlistToSave.findIndex(item => item.id === currentItemId);
+}
+const state = {
+playlist: playlistToSave,
+currentPlaylistIndex: savedCurrentIndex,
+playlistLoopMode: playlistLoopMode
+};
+localStorage.setItem('avp_playlist_state', JSON.stringify(state));
+}
+function loadPlaylistState() {
+const savedState = localStorage.getItem('avp_playlist_state');
+if (savedState) {
+try {
+const state = JSON.parse(savedState);
+playlist = state.playlist || []; 
+currentPlaylistIndex = (state.currentPlaylistIndex !== undefined && state.currentPlaylistIndex !== -1 && state.currentPlaylistIndex < playlist.length) 
+? state.currentPlaylistIndex 
+: -1;
+playlistLoopMode = state.playlistLoopMode || 'list';
+} catch (e) {
+console.error("Error loading playlist state:", e);
+playlist = []; currentPlaylistIndex = -1; playlistLoopMode = 'list';
+}
+}
+renderPlaylist();
+updateLoopModeButtons();
+if (currentPlaylistIndex !== -1 && playlist[currentPlaylistIndex]) {
+const item = playlist[currentPlaylistIndex];
+document.getElementById('videoURL').value = item.originalUrl || item.url;
+currentVideoUrl = item.url; 
+currentVideoName = item.name;
+currentVideoIsLocal = false; 
+}
+}
+</script>
+</body>
+</html>
