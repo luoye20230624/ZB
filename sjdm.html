@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随机点名系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft Yahei", sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+        }
+
+        .container {
+            background: #fff;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 650px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .control-box {
+            margin: 12px 0;
+        }
+
+        label {
+            font-size: 16px;
+            color: #555;
+            margin-right: 8px;
+        }
+
+        select, input[type="file"], input[type="checkbox"] {
+            padding: 8px 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            margin: 6px 0;
+        }
+
+        .btn-group {
+            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 22px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #startBtn {
+            background: #2ecc71;
+            color: #fff;
+        }
+        #clearHistoryBtn {
+            background: #f39c12;
+            color: #fff;
+        }
+        #resetBtn {
+            background: #e74c3c;
+            color: #fff;
+        }
+
+        button:disabled {
+            background: #999 !important;
+            cursor: not-allowed;
+        }
+
+        .roll-name {
+            font-size: 36px;
+            color: #667eea;
+            height: 50px;
+            line-height: 50px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        /* 历史记录 */
+        .history-box {
+            margin-top: 30px;
+            text-align: left;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .history-title {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+        .history-list {
+            max-height: 220px;
+            overflow-y: auto;
+            line-height: 1.8;
+            color: #444;
+            font-size: 15px;
+        }
+        .history-item {
+            padding: 4px 0;
+            border-bottom: 1px dashed #f0f0f0;
+        }
+
+        /* 弹窗 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 60px 80px;
+            border-radius: 20px;
+            text-align: center;
+            animation: scaleBig 0.5s ease;
+        }
+
+        .modal-name {
+            font-size: 50px;
+            color: #e74c3c;
+            font-weight: bold;
+            line-height: 1.8;
+        }
+
+        .close-btn {
+            margin-top: 30px;
+            background: #667eea;
+            color: #fff;
+        }
+
+        @keyframes scaleBig {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>随机点名系统</h1>
+
+        <div class="control-box">
+            <label>单次抽取人数：</label>
+            <select id="countSelect">
+                <option value="1">1人</option>
+                <option value="2">2人</option>
+                <option value="3">3人</option>
+                <option value="4">4人</option>
+                <option value="5">5人</option>
+                <option value="6">6人</option>
+                <option value="7">7人</option>
+                <option value="8">8人</option>
+                <option value="9">9人</option>
+                <option value="10">10人</option>
+            </select>
+        </div>
+
+        <div class="control-box">
+            <input type="checkbox" id="repeatCheck">
+            <label for="repeatCheck">允许重复点名</label>
+        </div>
+
+        <div class="control-box">
+            <label>导入TXT名单（可不上传）：</label>
+            <input type="file" id="fileInput" accept=".txt">
+        </div>
+
+        <div class="roll-name" id="rollName">已加载默认测试名单</div>
+
+        <div class="btn-group">
+            <button id="startBtn">开始点名</button>
+            <button id="clearHistoryBtn">清空历史</button>
+            <button id="resetBtn">重置全部</button>
+        </div>
+
+        <div class="history-box">
+            <div class="history-title">📋 点名历史记录</div>
+            <div class="history-list" id="historyList">暂无记录</div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-name" id="modalName"></div>
+            <button class="close-btn" id="closeModal">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        // 默认原始名单
+        const defaultNames = [
+            "张三","李四","王五","赵六","钱七",
+            "孙八","周九","吴十","郑一","王二",
+            "陈雪","刘阳","黄欣","林小雨","马浩然"
+        ];
+        let nameList = [...defaultNames];
+        let rollTimer = null;
+        const rollTime = 2000;
+        let historyArr = [];
+
+        const fileInput = document.getElementById('fileInput');
+        const countSelect = document.getElementById('countSelect');
+        const repeatCheck = document.getElementById('repeatCheck');
+        const startBtn = document.getElementById('startBtn');
+        const rollName = document.getElementById('rollName');
+        const modal = document.getElementById('modal');
+        const modalName = document.getElementById('modalName');
+        const closeModal = document.getElementById('closeModal');
+        const historyList = document.getElementById('historyList');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // 导入TXT
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                nameList = event.target.result.split('\n')
+                    .map(item => item.trim())
+                    .filter(item => item !== '');
+                if (nameList.length === 0) {
+                    alert('名单为空，恢复默认名单');
+                    nameList = [...defaultNames];
+                    return;
+                }
+                rollName.innerText = `已导入 ${nameList.length} 人自定义名单`;
+            };
+            reader.readAsText(file);
+        });
+
+        // 开始点名
+        startBtn.addEventListener('click', function() {
+            startBtn.disabled = true;
+            rollTimer = setInterval(() => {
+                let idx = Math.floor(Math.random() * nameList.length);
+                rollName.innerText = nameList[idx];
+            }, 80);
+
+            setTimeout(() => {
+                clearInterval(rollTimer);
+                let num = parseInt(countSelect.value);
+                let res = getRandomNames(nameList, num);
+                let resStr = res.join('　　');
+
+                modalName.innerText = resStr;
+                modal.style.display = 'flex';
+                addHistory(resStr);
+                startBtn.disabled = false;
+            }, rollTime);
+        });
+
+        // 关闭弹窗
+        closeModal.addEventListener('click', () => modal.style.display = 'none');
+
+        // 历史记录
+        function addHistory(str) {
+            const now = new Date();
+            const timeStr = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+            historyArr.unshift({ time: timeStr, names: str });
+            renderHistory();
+        }
+        function renderHistory() {
+            if(historyArr.length === 0) {
+                historyList.innerHTML = '暂无记录';
+                return;
+            }
+            let html = '';
+            historyArr.forEach(item => {
+                html += `<div class="history-item">[${item.time}] ${item.names}</div>`;
+            });
+            historyList.innerHTML = html;
+        }
+
+        // 清空历史
+        clearHistoryBtn.addEventListener('click', () => {
+            historyArr = [];
+            renderHistory();
+        });
+
+        // 重置全部：恢复默认名单 + 清空历史
+        resetBtn.addEventListener('click', () => {
+            nameList = [...defaultNames];
+            historyArr = [];
+            rollName.innerText = '已重置，恢复默认测试名单';
+            renderHistory();
+        });
+
+        // 智能随机抽取：勾选可重复 / 不重复
+        function getRandomNames(arr, count) {
+            let temp = [...arr];
+            let res = [];
+            let len = Math.min(count, temp.length);
+
+            // 允许重复点名
+            if(repeatCheck.checked){
+                for(let i=0;i<len;i++){
+                    let idx = Math.floor(Math.random() * temp.length);
+                    res.push(temp[idx]);
+                }
+            }
+            // 不重复点名
+            else{
+                for(let i=0;i<len;i++){
+                    if(temp.length===0) break;
+                    let idx = Math.floor(Math.random() * temp.length);
+                    res.push(temp.splice(idx,1)[0]);
+                }
+            }
+            return res;
+        }
+    </script>
+</body>
+</html>
