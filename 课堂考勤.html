@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>课堂考勤</title>
+<!-- SheetJS：导出真正的 Excel 文件 -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f6f8; color: #1a1a1a;
+    max-width: 640px; margin: 0 auto; padding-bottom: 40px;
+  }
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: #fff; padding: 14px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  }
+  header h1 { font-size: 18px; color: #16a34a; }
+  .toolbar { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  .toolbar input[type=date] {
+    flex: 1; min-width: 140px; padding: 8px 10px;
+    border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;
+  }
+  .btn {
+    padding: 9px 16px; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .btn-primary { background: #16a34a; color: #fff; }
+  .btn-secondary { background: #e5e7eb; color: #374151; }
+  .btn-danger { background: #fff; color: #dc2626; border: 1px solid #fecaca; }
+  .info { font-size: 13px; color: #6b7280; margin-top: 8px; }
+  .info b { color: #16a34a; }
+
+  .tabs { display: flex; background: #fff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 105px; z-index: 40; }
+  .tab { flex: 1; text-align: center; padding: 12px 0; font-size: 14px; color: #6b7280; cursor: pointer; }
+  .tab.active { color: #16a34a; font-weight: 600; border-bottom: 2px solid: #16a34a; }
+  .tab.active { border-bottom: 2px solid #16a34a; }
+
+  .page { display: none; padding: 14px; }
+  .page.active { display: block; }
+
+  /* 图例 */
+  .legend { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; font-size: 11px; }
+  .legend span { display: flex; align-items: center; gap: 3px; color: #6b7280; }
+  .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  /* 卡片网格 —— 6列布局 */
+  .grid {
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    gap: 8px; margin-top: 12px;
+  }
+  .card {
+    position: relative;
+    background: #fff; border: 2px solid #e5e7eb; border-radius: 12px;
+    padding: 10px 4px; text-align: center; cursor: pointer;
+    transition: all .15s; user-select: none;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .card .num { font-size: 11px; color: #9ca3af; }
+  .card .name { font-size: 14px; font-weight: 600; color: #374151; }
+  .card .check {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid #d1d5db; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: #fff; font-weight: 700;
+  }
+  /* 出勤（绿·✓） */
+  .card.present { border-color: #16a34a; background: #ecfdf5; }
+  .card.present .name { color: #16a34a; }
+  .card.present .check { background: #16a34a; border-color: #16a34a; }
+  .card.present .check::after { content: "✓"; }
+  /* 迟到（橙·钟） */
+  .card.late { border-color: #f59e0b; background: #fffbeb; }
+  .card.late .name { color: #d97706; }
+  .card.late .check { background: #f59e0b; border-color: #f59e0b; }
+  .card.late .check::after { content: "迟"; }
+  /* 早退（紫·退） */
+  .card.early { border-color: #8b5cf6; background: #f5f3ff; }
+  .card.early .name { color: #7c3aed; }
+  .card.early .check { background: #8b5cf6; border-color: #8b5cf6; }
+  .card.early .check::after { content: "退"; }
+  /* 缺勤（红·灰名） */
+  .card.absent { border-color: #fca5a5; background: #fef2f2; }
+  .card.absent .name { color: #9ca3af; text-decoration: line-through; }
+  .card.absent .check { border-color: #fca5a5; }
+  .card.absent .check::after { content: "✕"; color: #fca5a5; }
+
+  .reason-bar {
+    margin-top: 14px; background: #fff; border-radius: 12px; padding: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  }
+  .reason-bar summary { font-size: 14px; font-weight: 600; cursor: pointer; color: #374151; }
+  .reason-row { display: flex; gap: 8px; margin-top: 8px; align-items: center; font-size: 13px; }
+  .reason-row .r-name { width: 70px; color: #16a34a; font-weight: 600; }
+  .reason-row input { flex: 1; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; }
+
+  /* 历史 & 统计 */
+  .session {
+    background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  }
+  .session .head { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; }
+  .session .head .date { color: #16a34a; }
+  .session .stats { font-size: 12px; color: #6b7280; margin-top: 4px; }
+  .session .absent-list { font-size: 12px; color: #dc2626; margin-top: 6px; }
+  .session .detail { font-size: 12px; color: #374151; margin-top: 4px; line-height: 1.6; }
+  .tag { display:inline-block; padding:1px 5px; border-radius:4px; font-size:11px; margin-right:2px; color:#fff; }
+  .tag-late { background:#f59e0b; } .tag-early { background:#8b5cf6; } .tag-absent { background:#9ca3af; }
+  .progress { height: 6px; background: #e5e7eb; border-radius: 3px; margin-top: 6px; overflow: hidden; }
+  .progress > div { height: 100%; background: #16a34a; }
+
+  .stat-row { display: flex; justify-content: space-between; padding: 8px 4px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+  .stat-row .s-name { font-weight: 600; }
+  .stat-row .rate-good { color: #16a34a; }
+  .stat-row .rate-bad { color: #dc2626; font-weight: 600; }
+
+  .empty { text-align: center; color: #9ca3af; padding: 40px 0; font-size: 14px; }
+  .badge { display:inline-block; background:#16a34a; color:#fff; border-radius:10px; padding:2px 8px; font-size:12px; margin-left:6px;}
+
+  .export-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 课堂考勤</h1>
+  <div class="toolbar">
+    <input type="date" id="dateInput">
+    <button class="btn btn-primary" onclick="startAttendance()">▶ 开始考勤</button>
+    <button class="btn btn-secondary" onclick="saveSession()">⏷ 保存</button>
+    <button class="btn btn-danger" onclick="resetToday()">清空</button>
+  </div>
+  <div class="info">
+    本次：共 <b id="totalNum">0</b> 人 ·
+    出勤 <b id="presentNum" style="color:#16a34a">0</b> ·
+    迟到 <b id="lateNum" style="color:#f59e0b">0</b> ·
+    早退 <b id="earlyNum" style="color:#8b5cf6">0</b> ·
+    缺勤 <b id="absentNum" style="color:#dc2626">0</b>
+    <span id="rateBadge"></span>
+  </div>
+  <div class="legend">
+    <span><i class="dot" style="background:#ecfdf5;border:2px solid #16a34a"></i>出勤(✓)</span>
+    <span><i class="dot" style="background:#fffbeb;border:2px solid #f59e0b"></i>迟到(迟)</span>
+    <span><i class="dot" style="background:#f5f3ff;border:2px solid #8b5cf6"></i>早退(退)</span>
+    <span><i class="dot" style="background:#fef2f2;border:2px solid #fca5a5"></i>缺勤(✕)</span>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('roll')">点名</div>
+  <div class="tab" onclick="switchTab('history')">历史</div>
+  <div class="tab" onclick="switchTab('stats')">统计</div>
+  <div class="tab" onclick="switchTab('list')">名单</div>
+</div>
+
+<!-- 点名页 -->
+<div class="page active" id="page-roll">
+  <div class="info" id="rollHint">点「开始考勤」加载全班名单。<b>反复点卡片可切换：出勤 → 迟到 → 早退 → 缺勤 → 出勤</b>，没来的留灰即可。</div>
+  <details class="reason-bar" id="reasonBox" open>
+    <summary>✍️ 缺勤/迟到/早退原因（点击展开）</summary>
+    <div id="reasonList"></div>
+  </details>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- 历史页 -->
+<div class="page" id="page-history">
+  <div class="export-bar">
+    <button class="btn btn-primary" onclick="exportExcel()">📊 导出 Excel</button>
+    <button class="btn btn-secondary" onclick="exportCSV()">📄 导出 CSV</button>
+    <button class="btn btn-danger" onclick="clearAllHistory()">🗑 清空历史</button>
+  </div>
+  <div class="info">导出的表格包含每次课全员的明细（出勤/迟到/早退/缺勤）及缺勤原因。</div>
+  <div id="historyList"></div>
+</div>
+
+<!-- 统计页 -->
+<div class="page" id="page-stats">
+  <div class="info">基于全部历史考勤自动汇总，出勤率 &lt; 80% 标红提醒。（迟到、早退均计为「未正常出勤」）</div>
+  <div id="statList" style="margin-top:12px;background:#fff;border-radius:12px;padding:8px 12px;"></div>
+</div>
+
+<!-- 名单页 -->
+<div class="page" id="page-list">
+  <div class="info">在此维护全班姓名，每行一个，保存后生效。</div>
+  <textarea id="nameListInput" style="width:100%;height:340px;margin-top:10px;padding:10px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;line-height:1.8;"></textarea>
+  <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="saveNameList()">✓ 保存名单</button>
+</div>
+
+<script>
+/* ============ 数据层（localStorage 自动持久化）============ */
+const STORAGE_KEY = "attendance_data_v2"; // v2：新增迟到/早退
+let data = load();
+
+function load() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) {
+      const d = JSON.parse(s);
+      // 兼容旧数据：确保每个 session 有 states 字段
+      (d.sessions || []).forEach(fixSession);
+      return d;
+    }
+  } catch(e){}
+  return { names: defaultNames(), sessions: [] };
+}
+function fixSession(s) {
+  if (!s.states) {
+    // 旧格式：用 absentNames 推导，默认未到=缺勤，其余=出勤
+    s.states = {};
+    (s.absentNames || []).forEach(n => s.states[n] = "absent");
+  }
+}
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function defaultNames() {
+  const seed = [
+    "万霞","贺弘卫","戴仁忠","肖辉","李昱贤","周德兵",
+    "舒文","陈晨","彭飞","曾强","舒雅","陈明",
+    "彭磊","曾伟","舒宁","陈静","彭程","曾勇",
+    "王磊","李娜","张伟","刘洋","赵敏","孙杰",
+    "周婷","吴磊","郑爽","冯涛","何军","朱琳",
+    "胡波","郭倩","林峰","徐畅","马超","高翔",
+    "谢楠","宋佳","唐颖","韩磊","邓超","曹阳",
+    "彭丽","曾宇","舒心","陈思","戴玉","贺军"
+  ];
+  return seed;
+}
+
+/* ============ 点名交互 ============ */
+// 状态：present(出勤) | late(迟到) | early(早退) | absent(缺勤)
+let currentStates = {}; // name -> state
+let currentReasons = {};
+
+const STATE_ORDER = ["absent", "present", "late", "early"];
+function nextState(cur) {
+  const i = STATE_ORDER.indexOf(cur || "absent");
+  return STATE_ORDER[(i + 1) % STATE_ORDER.length];
+}
+
+function startAttendance() {
+  document.getElementById("dateInput").value =
+    document.getElementById("dateInput").value || new Date().toISOString().slice(0,10);
+  currentStates = {};
+  currentReasons = {};
+  data.names.forEach(n => currentStates[n] = "absent"); // 默认缺勤
+  renderGrid();
+  renderReasons();
+  switchTab("roll");
+  document.getElementById("rollHint").innerHTML =
+    "✅ 名单已加载，<b>反复点卡片切换状态</b>（出勤→迟到→早退→缺勤），填完点「保存」。";
+}
+
+function toggleCard(name) {
+  currentStates[name] = nextState(currentStates[name]);
+  renderGrid();
+  renderReasons();
+}
+
+function stateCount(state) {
+  return data.names.filter(n => (currentStates[n] || "absent") === state).length;
+}
+
+function renderGrid() {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  data.names.forEach((name, i) => {
+    const state = currentStates[name] || "absent";
+    const card = document.createElement("div");
+    card.className = "card " + (state === "absent" ? "" : state);
+    card.onclick = () => toggleCard(name);
+    card.innerHTML = `
+      <div class="check"></div>
+      <div class="name">${name}</div>
+      <div class="num">${i+1}</div>
+    `;
+    grid.appendChild(card);
+  });
+  const total = data.names.length;
+  document.getElementById("totalNum").textContent = total;
+  document.getElementById("presentNum").textContent = stateCount("present");
+  document.getElementById("lateNum").textContent = stateCount("late");
+  document.getElementById("earlyNum").textContent = stateCount("early");
+  document.getElementById("absentNum").textContent = stateCount("absent");
+  const present = stateCount("present");
+  const rate = total ? Math.round(present/total*100) : 0;
+  document.getElementById("rateBadge").innerHTML =
+    `<span class="badge">出勤率 ${rate}%</span>`;
+}
+
+// 需要填原因的人：缺勤、迟到、早退
+function needsReasonNames() {
+  return data.names.filter(n => ["absent","late","early"].includes(currentStates[n] || "absent"));
+}
+function renderReasons() {
+  const box = document.getElementById("reasonList");
+  box.innerHTML = "";
+  const list = needsReasonNames();
+  if (list.length === 0) {
+    box.innerHTML = '<div class="info">🎉 全班到齐且无迟到早退，无需填写。</div>';
+    return;
+  }
+  const labelMap = { absent: "缺勤", late: "迟到", early: "早退" };
+  list.forEach(n => {
+    const st = currentStates[n] || "absent";
+    const row = document.createElement("div");
+    row.className = "reason-row";
+    row.innerHTML = `
+      <div class="r-name" style="color:#dc2626">${n} <small>(${labelMap[st]})</small></div>
+      <input type="text" placeholder="原因（如病假/堵车/有事提前走）" value="${currentReasons[n]||""}"
+             oninput="currentReasons['${n}'] = this.value">
+    `;
+    box.appendChild(row);
+  });
+}
+
+function saveSession() {
+  const date = document.getElementById("dateInput").value || new Date().toISOString().slice(0,10);
+  if (!data.names.length) return alert("请先填写学生名单！");
+  const states = {};
+  data.names.forEach(n => states[n] = currentStates[n] || "absent");
+  const reasons = {};
+  needsReasonNames().forEach(n => { if (currentReasons[n]) reasons[n] = currentReasons[n]; });
+  const present = stateCount("present");
+  const session = {
+    id: Date.now(),
+    date,
+    present,
+    total: data.names.length,
+    states,
+    reasons
+  };
+  const exist = data.sessions.findIndex(s => s.date === date);
+  if (exist >= 0) data.sessions[exist] = session; else data.sessions.push(session);
+  save();
+  renderHistory(); renderStats();
+  alert("✅ 已保存！可在「历史」查看。");
+}
+
+function resetToday() {
+  if (!confirm("清空本次点名状态？")) return;
+  currentStates = {};
+  data.names.forEach(n => currentStates[n] = "absent");
+  currentReasons = {};
+  renderGrid(); renderReasons();
+}
+
+/* ============ 历史 ============ */
+function renderHistory() {
+  const el = document.getElementById("historyList");
+  if (!data.sessions.length) { el.innerHTML = '<div class="empty">暂无历史考勤，先去「点名」保存一次吧。</div>'; return; }
+  const sorted = [...data.sessions].sort((a,b) => b.id - a.id);
+  el.innerHTML = sorted.map(s => {
+    fixSession(s);
+    const present = countState(s, "present");
+    const late = countState(s, "late");
+    const early = countState(s, "early");
+    const absent = countState(s, "absent");
+    const rate = Math.round(present/s.total*100);
+    const labelMap = { absent: "缺勤", late: "迟到", early: "早退" };
+    // 明细：迟到/早退/缺勤的人 + 原因
+    const detailParts = [];
+    data.names.forEach(n => {
+      const st = s.states[n];
+      if (st && st !== "present") {
+        const r = s.reasons && s.reasons[n] ? `(${s.reasons[n]})` : "";
+        detailParts.push(`${n}${r}`);
+      }
+    });
+    const absentStr = detailParts.length ? detailParts.join("、") : "全班到齐 🎉";
+    return `
+      <div class="session">
+        <div class="head">
+          <span class="date">📅 ${s.date}</span>
+          <span>✓${present} 迟${late} 退${early} ✕${absent}</span>
+        </div>
+        <div class="progress"><div style="width:${rate}%"></div></div>
+        <div class="stats">出勤率 ${rate}% · 出勤${present}/迟到${late}/早退${early}/缺勤${absent}</div>
+        <div class="absent-list">未正常出勤：${absentStr}</div>
+      </div>`;
+  }).join("");
+}
+function countState(session, state) {
+  fixSession(session);
+  return Object.values(session.states).filter(v => v === state).length;
+}
+
+/* ============ 统计 ============ */
+function renderStats() {
+  const el = document.getElementById("statList");
+  if (!data.sessions.length) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
+  const total = data.sessions.length;
+  const stat = {};
+  data.names.forEach(n => stat[n] = { ok: 0, late: 0, early: 0, absent: 0 });
+  data.sessions.forEach(s => {
+    fixSession(s);
+    data.names.forEach(n => {
+      const st = (s.states && s.states[n]) || "absent";
+      if (stat[n][st] !== undefined) stat[n][st]++;
+      else stat[n].absent++;
+    });
+  });
+  const rows = data.names.map(n => {
+    const normal = stat[n].ok; // ok 即 present
+    const irregular = stat[n].late + stat[n].early + stat[n].absent;
+    const rate = total ? Math.round(normal/total*100) : 0;
+    const cls = rate < 80 ? "rate-bad" : "rate-good";
+    return `<div class="stat-row">
+      <span class="s-name">${n}</span>
+      <span class="${cls}">✓${normal} 迟${stat[n].late} 退${stat[n].early} ✕${stat[n].absent} · ${rate}%</span>
+    </div>`;
+  }).join("");
+  el.innerHTML = `<div style="padding:4px 0;font-size:13px;color:#6b7280;">共 ${total} 次考勤（出勤率=正常出勤/总次数）</div>` + rows;
+}
+
+/* ============ 导出 Excel / CSV ============ */
+function buildExportData() {
+  // 第一张表：汇总（每次课一行）
+  const summaryRows = [
+    ["日期","出勤人数","迟到人数","早退人数","缺勤人数","总人数","出勤率","未正常出勤明细"]
+  ];
+  const sorted = [...data.sessions].sort((a,b) => a.date.localeCompare(b.date));
+  sorted.forEach(s => {
+    fixSession(s);
+    const p = countState(s,"present"), l = countState(s,"late"),
+          e = countState(s,"early"), ab = countState(s,"absent");
+    const rate = Math.round(p/s.total*100);
+    const detail = [];
+    data.names.forEach(n => {
+      const st = s.states[n];
+      if (st && st !== "present") detail.push(n + (s.reasons&&s.reasons[n]?`(${s.reasons[n]})`:""));
+    });
+    summaryRows.push([s.date, p, l, e, ab, s.total, rate + "%", detail.join("、") || "全班到齐"]);
+  });
+
+  // 第二张表：全员明细（每个人 × 每次课）
+  const detailHeader = ["姓名", ...sorted.map(s => s.date)];
+  const detailRows = [detailHeader];
+  data.names.forEach(n => {
+    const row = [n];
+    sorted.forEach(s => {
+      fixSession(s);
+      const st = (s.states && s.states[n]) || "缺勤";
+      row.push({present:"出勤", late:"迟到", early:"早退", absent:"缺勤"}[st] || "缺勤");
+    });
+    detailRows.push(row);
+  });
+
+  // 第三张表：每人累计统计
+  const statHeader = ["姓名","正常出勤","迟到","早退","缺勤","出勤率"];
+  const statRows = [statHeader];
+  data.sessions.forEach(s => fixSession(s));
+  data.names.forEach(n => {
+    let ok=0, l=0, e=0, ab=0;
+    data.sessions.forEach(s => {
+      const st = (s.states && s.states[n]) || "absent";
+      if (st==="present") ok++; else if (st==="late") l++; else if (st==="early") e++; else ab++;
+    });
+    const rate = data.sessions.length ? Math.round(ok/data.sessions.length*100) : 0;
+    statRows.push([n, ok, l, e, ab, rate + "%"]);
+  });
+
+  return { summaryRows, detailRows, statRows };
+}
+
+function exportExcel() {
+  if (!data.sessions.length) return alert("暂无历史记录可导出！");
+  const { summaryRows, detailRows, statRows } = buildExportData();
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryRows), "考勤汇总");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailRows), "全员明细");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(statRows), "个人统计");
+  const fname = "考勤记录_" + new Date().toISOString().slice(0,10) + ".xlsx";
+  XLSX.writeFile(wb, fname);
+}
+
+function exportCSV() {
+  if (!data.sessions.length) return alert("暂无历史记录可导出！");
+  const { summaryRows, detailRows, statRows } = buildExportData();
+  const toCsv = rows => rows.map(r => r.map(cell => {
+    const c = String(cell == null ? "" : cell);
+    return /[",\n]/.test(c) ? `"${c.replace(/"/g,'""')}"` : c;
+  }).join(",")).join("\n");
+  // CSV 含中文，加 BOM 让 Excel 正确显示
+  const bom = "\uFEFF";
+  const csv = bom + toCsv(summaryRows) + "\n\n" + toCsv(detailRows) + "\n\n" + toCsv(statRows);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "考勤记录_" + new Date().toISOString().slice(0,10) + ".csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function clearAllHistory() {
+  if (!data.sessions.length) return alert("历史已为空。");
+  if (!confirm("确定清空全部历史考勤？此操作不可撤销！")) return;
+  data.sessions = [];
+  save();
+  renderHistory(); renderStats();
+  alert("已清空历史。");
+}
+
+/* ============ 名单管理 ============ */
+function saveNameList() {
+  const text = document.getElementById("nameListInput").value;
+  const names = text.split(/[\n,，;；\s]+/).map(s => s.trim()).filter(Boolean);
+  if (!names.length) return alert("名单不能为空！");
+  data.names = names;
+  save();
+  alert(`✅ 已保存 ${names.length} 人，去「点名」开始考勤吧。`);
+  renderGrid();
+}
+
+/* ============ 切换标签 ============ */
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  event.target.classList.add("active");
+  document.getElementById("page-" + name).classList.add("active");
+  if (name === "history") renderHistory();
+  if (name === "stats") renderStats();
+  if (name === "list") document.getElementById("nameListInput").value = data.names.join("\n");
+}
+
+/* ============ 初始化 ============ */
+document.getElementById("dateInput").value = new Date().toISOString().slice(0,10);
+document.getElementById("nameListInput").value = data.names.join("\n");
+renderGrid();
+</script>
+</body>
+</html>
